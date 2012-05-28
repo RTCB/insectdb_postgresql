@@ -1,0 +1,8 @@
+data
+  |--> *seg_ids_incl_change*  seg_ids of segments that changed their inclusion rate between dmel+dsim and dyak
+  |--> *seg_ids_incl_stable*  seg_ids of segments that have the same inclusion rates across all three species
+
+
+Total amount of synonymous positions in all segments: 1887930
+Total amount of non-synonymous positions in all segments: 7540426
+

@@ -12,21 +12,5 @@ class CreateReferences < ActiveRecord::Migration
       t.boolean :dsim_dyak
 
     end
-
-    add_index :reference,
-              [:chromosome, :position],
-              :name => 'reference__chromosome_pos'
-    add_index :reference,
-              [:chromosome, :dmel_dsim],
-              :name => 'reference__chromosome_dmel_dsim'
-    add_index :reference,
-              [:chromosome, :dmel_dyak],
-              :name => 'reference__chromosome_dmel_dyak'
-    add_index :reference,
-              [:chromosome, :dsim_dyak],
-              :name => 'reference__chromosome_dsim_dyak'
-    add_index :reference,
-              [:chromosome, :dmel_dsim, :dmel_dyak, :dsim_dyak],
-              :name => 'reference__chromosome_dmel_dsim_dyak'
   end
 end

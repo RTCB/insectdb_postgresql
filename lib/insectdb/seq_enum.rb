@@ -2,8 +2,8 @@ module Insectdb
 class SeqEnum
   attr_reader :length
 
-  def initialize(path)
-    @seq = fagz_to_seq(path)
+  def initialize(input, is_path = true)
+    @seq = (is_path ? fagz_to_seq(input) : input)
     @length = @seq.length
     @pntr = -1
   end
@@ -14,6 +14,18 @@ class SeqEnum
 
   def rewind
     @pntr = -1
+  end
+
+  def seq
+    @seq.split('')
+  end
+
+  def [](pos, step)
+    if pos+step < @length
+      SeqEnum.new(@seq[pos,step], false)
+    else
+      SeqEnum.new(@seq[pos,step] + ('N'*((pos+step)-@length)), false)
+    end
   end
 
   private

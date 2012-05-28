@@ -4,3 +4,4 @@ Gemfile.lock
 pkg/*
 config/*
 db/seed/**
+tags

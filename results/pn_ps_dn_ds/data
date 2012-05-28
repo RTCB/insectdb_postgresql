@@ -1,0 +1,9 @@
+Computed with 5 nucleotide-wide shifts from both ends of exon.
+
+                pn     ps     dn     ds
+alt            0.008  0.035  0.003  0.026
+alt_cassettee  0.008  0.035  0.003  0.026
+const          0.006  0.041  0.003  0.035
+
+incl_stable    0.006  0.040  0.002  0.033
+incl_changed   0.005  0.040  0.002  0.032

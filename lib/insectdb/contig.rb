@@ -4,7 +4,7 @@ class Contig
   attr_reader :nuc_seq, :start
 
   #      5'---------------->3'
-  #    start   nuc_seq
+  #    start              stop
   # @param [String] nuc_seq --> 'ACGTTTG'
   # @param [Fixnum] start, counted from 5' end
   # @param [String] strand '+' or '-'
@@ -12,6 +12,10 @@ class Contig
     @start = start
     @nuc_seq = ( strand == '+' ? nuc_seq : comp_seq(nuc_seq) )
     @strand = strand
+  end
+
+  def count( nuc )
+    @nuc_seq.count(nuc)
   end
 
   # Return nucleotide at position.
