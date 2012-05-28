@@ -5,3 +5,5 @@ pkg/*
 config/*
 db/seed/**
 tags
+data/**
+.yardoc
