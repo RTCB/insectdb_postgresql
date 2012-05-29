@@ -2,7 +2,7 @@
 .bundle
 Gemfile.lock
 pkg/*
-config/*
+config/database.yml
 db/seed/**
 tags
 data/**
