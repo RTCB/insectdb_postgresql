@@ -17,11 +17,23 @@ task :pull do
   `git pull origin`
 end
 
+namespace :env do
+  task :test do
+    ENV['DATABASE_ENV'] = 'test'
+  end
+end
+
 namespace :db do
+
+  namespace :test do
+    task :prepare => 'env:test' do
+      Rake::Task['db:migrate'].invoke
+    end
+  end
 
   task :environment do
     DATABASE_ENV = ENV['DATABASE_ENV'] || 'production'
-    MIGRATIONS_DIR = ENV['MIGRATIONS_DIR'] || 'db/migrate'
+    MIGRATIONS_DIR = 'db/migrate'
   end
 
   task :configuration => :environment do
@@ -46,7 +58,7 @@ namespace :db do
   desc 'Migrate the database (options: VERSION=x, VERBOSE=false).'
   task :migrate => :configure_connection do
     ActiveRecord::Migration.verbose = true
-    ActiveRecord::Migrator.migrate MIGRATIONS_DIR, ENV['VERSION'] ? ENV['VERSION'].to_i : nil
+    ActiveRecord::Migrator.migrate(MIGRATIONS_DIR, ENV['VERSION'] ? ENV['VERSION'].to_i : nil)
   end
 
   desc 'Rolls the schema back to the previous version (specify steps w/ STEP=n).'

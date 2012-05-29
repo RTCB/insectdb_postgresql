@@ -1,5 +1,5 @@
 require_relative 'insectdb/version'
-require_relative 'insectdb/config'
+require_relative '../config/config'
 require_relative 'insectdb/seq_enum'
 require_relative 'insectdb/contig'
 require_relative 'insectdb/codon'
@@ -11,7 +11,7 @@ require 'json'
 require 'matrix'
 
 ActiveRecord::Base.establish_connection(
-  Insectdb::Config.database['production']
+  Insectdb::Config.database
 )
 
 require_relative '../app/models/mrna'

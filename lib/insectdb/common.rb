@@ -1,4 +1,6 @@
 module Insectdb
+
+  # Public: Execute map in parallel processes on array.
   def self.mapp( array, processes = 8, &block )
     Parallel.map(array, :in_processes => processes) do |el|
       ActiveRecord::Base.connection.reconnect!
@@ -21,12 +23,29 @@ module Insectdb
     end
   end
 
-  def self.bind( path )
+  # Public: Parse the file with binding data.
+  #
+  # The source file should have two columns separated by a comma:
+  #   1,0.01
+  #   2,3
+  #   3,0.08
+  #   5,0.12
+  #
+  # The first column is a coordinate on the chromosome,
+  # while the second one represents the computed propability of nucleotide at this
+  # position binding to another one. This value should not be considered as true probability but more
+  # of a weight as long as it belongs to [0,inf).
+  #
+  # Positions are clustered by the value of their weight into the following groups:
+  # [0,0.1) [0.1,0.2) ... until the last non-empty group
+  #
+  # Returns: Array of Arrays
+  def self.bind
     data =
-      File.open(path)
-        .lines
-        .map{ |li| l=li.chomp.split(","); l[0]=l[0].to_i; l[1]=l[1].to_f; l }
-        .sort_by(&:last)
+      File.open(Insectdb::Config.path_to(:bind))
+          .lines
+          .map{ |li| l=li.chomp.split(","); l[0]=l[0].to_i; l[1]=l[1].to_f; l }
+          .sort_by(&:last)
 
     holder = [[]]
     prev = 0

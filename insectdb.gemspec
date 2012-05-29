@@ -19,7 +19,9 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # Development dependencies
-  # s.add_development_dependency "rspec"
+  s.add_development_dependency "rspec"
+  s.add_development_dependency "mocha"
+  s.add_development_dependency "fakefs"
 
   # Runtime dependencies
   s.add_runtime_dependency "pg"

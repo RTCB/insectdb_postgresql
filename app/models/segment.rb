@@ -95,7 +95,6 @@ class Segment < ActiveRecord::Base
     end
 
     true
-
   rescue StopIteration
     warn 'Looks like finished'
   end
