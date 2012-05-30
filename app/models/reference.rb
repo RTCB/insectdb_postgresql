@@ -70,7 +70,7 @@ class Reference < ActiveRecord::Base
       self.where("chromosome = ? and
                   position in (?) and
                   dsim_dyak = true and
-                  dsim = ?", chr, poss, nuc)
+                  dsim = ?", CHROMOSOMES[chr], poss, nuc)
           .count
     end.reduce(:+)
   end
