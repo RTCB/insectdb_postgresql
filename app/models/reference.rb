@@ -65,6 +65,16 @@ class Reference < ActiveRecord::Base
     CHROMOSOMES.keys.each{|chr| self.parallel_seed(path, chr)}
   end
 
+  def self.count_nucs_at_poss( chr, poss, nuc )
+    poss.each_slice(2000).map do |p|
+      self.where("chromosome = ? and
+                  position in (?) and
+                  dsim_dyak = true and
+                  dsim = ?", chr, poss, nuc)
+          .count
+    end.reduce(:+)
+  end
+
   def self.parallel_seed( path, chr )
     ref_enums =
       [
