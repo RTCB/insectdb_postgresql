@@ -160,7 +160,9 @@ class Segment < ActiveRecord::Base
 
     %W[ A C G T ].permutation(2).map do |nucs|
       bind.map do |bind_bin|
-        Div.count_at_poss_with_nucs('2L', bind_bin.isect(syn_poss), nucs[0], nucs[1])
+        bind_bin.isect(syn_poss).each_slice(5000) do |sl|
+          Div.count_at_poss_with_nucs('2L', sl, nucs[0], nucs[1])
+        end.reduce(:+)
       end
     end
   end
