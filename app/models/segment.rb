@@ -158,7 +158,7 @@ class Segment < ActiveRecord::Base
              .map { |s| s.poss(syn) }
              .flatten
 
-    all_nuc_counts = %[ A C G T ].map do |nuc|
+    all_nuc_counts = W%[ A C G T ].map do |nuc|
       bind.map do |bind_bin|
         Insectdb::Reference.count_nucs_at_poss('2L', bind_bin, nuc)
       end
