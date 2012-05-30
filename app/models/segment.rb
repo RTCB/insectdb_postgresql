@@ -149,17 +149,19 @@ class Segment < ActiveRecord::Base
     count + [count[0].to_f/count[1]]
   end
 
-  def self.bind_divs_with_nucs( syn, scope, orig_nuc, dmel_nuc, bind_bins=nil )
+  def self.bind_divs_for_all_nucs( syn, scope )
+    bind = Insectdb.bind
+
     syn_poss =
       Segment.send(scope)
              .where(:chromosome => '2L')
              .map { |s| s.poss(syn) }
-             .flatten(1)
+             .flatten
 
-    bind_bins ||= Insectdb.bind
-
-    bind_bins.map do |bin|
-      Div.count_at_poss_with_nucs('2L', bin.isect(syn_poss), dmel_nuc, orig_nuc)
+    %W[ A C G T ].permutation(2).map do |nucs|
+      bind.map do |bind_bin|
+        Div.count_at_poss_with_nucs('2L', bind_bin.isect(syn_poss), nucs[0], nucs[1])
+      end
     end
   end
 
