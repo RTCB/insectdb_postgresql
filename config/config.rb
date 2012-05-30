@@ -3,6 +3,10 @@ require 'yaml'
 module Insectdb
 module Config
 
+  PATHS = {
+    :bind => 'data/dm3_basepairs_2L_out'
+  }
+
   def self.open( file )
     YAML::load(
       File.open(
@@ -18,17 +22,8 @@ module Config
     File.join(
       File.dirname(__FILE__),
       '..',
-      self._path_to[sym]
+      PATHS[sym]
     )
-  end
-
-  # Private: returns path to any data file necessary for computations.
-  #
-  # Path should be relative to the project directory root.
-  def self._path_to
-    {
-      :bind => 'data/dm3_basepairs_2L_out'
-    }
   end
 
 end

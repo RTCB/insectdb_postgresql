@@ -156,7 +156,7 @@ class Segment < ActiveRecord::Base
              .map { |s| s.poss(syn) }
              .flatten(1)
 
-    bind_bins ||= Insectdb.bind('insectdb/data/dm3_basepairs_2L_out')
+    bind_bins ||= Insectdb.bind
 
     bind_bins.map do |bin|
       Div.count_at_poss_with_nucs('2L', bin.isect(syn_poss), dmel_nuc, orig_nuc)

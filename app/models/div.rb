@@ -20,9 +20,7 @@ class Div < Reference
                    CHROMOSOMES[chr], poss
                 )
 
-    poss.map do |pos|
-      query.find{|div| div.position == pos}
-    end
+    poss.map { |pos| query.find { |div| div.position == pos }}
   end
 
   def self.count_at_poss( chr, poss )
@@ -46,11 +44,11 @@ class Div < Reference
 
   def self.alleles_at_poss( strand, chr, poss )
     self.at_poss(chromosome,poss)
-        .map{|div| div ? div.alleles(strand) : nil }
+        .map { |div| div ? div.alleles(strand) : nil }
   end
 
   def alleles( strand = '+' )
-    [dmel, dsim].map{|n| strand == '+' ? n : Contig.complement(n) }
+    [dmel, dsim].map { |n| strand == '+' ? n : Contig.complement(n) }
   end
 
 end
