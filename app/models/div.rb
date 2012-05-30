@@ -34,12 +34,14 @@ class Div < Reference
   end
 
   def self.count_at_poss_with_nucs( chr, poss, dmel_nuc, simyak_nuc )
-    Div.where(
-      "chromosome = ? and
-       position in (?) and
-       dmel = ? and dsim = ?",
-       CHROMOSOMES[chr], poss, dmel_nuc, simyak_nuc
-    ).count
+    poss.each_slice(2000).map do |sl|
+      Div.where(
+        "chromosome = ? and
+         position in (?) and
+         dmel = ? and dsim = ?",
+         CHROMOSOMES[chr], sl, dmel_nuc, simyak_nuc
+      ).count
+    end.reduce(:+)
   end
 
   def self.alleles_at_poss( strand, chr, poss )

@@ -158,13 +158,23 @@ class Segment < ActiveRecord::Base
              .map { |s| s.poss(syn) }
              .flatten
 
-    %W[ A C G T ].permutation(2).map do |nucs|
+    all_nuc_counts = %[ A C G T ].map do |nuc|
       bind.map do |bind_bin|
-        bind_bin.isect(syn_poss).each_slice(5000).map do |sl|
-          Div.count_at_poss_with_nucs('2L', sl, nucs[1], nucs[0])
-        end.reduce(:+)
+        Insectdb::Reference.count_nucs_at_poss('2L', bind_bin, nuc)
       end
     end
+
+    div_nuc_counts =
+      %W[ A C G T ].permutation(2).map do |nucs|
+        bind.map do |bind_bin|
+          Div.count_at_poss_with_nucs('2L', bind_bin, nucs[1], nucs[0])
+        end
+      end
+
+    div_nuc_counts
+      .each_slice(3)
+      .map(&:inn_sum)
+      .map.with_index { |a,i| a.divide_by(all_nuc_counts[i]) }
   end
 
   def self.divs_with_nucs_for( syn, scope, dmel_nuc, simyak_nuc )
