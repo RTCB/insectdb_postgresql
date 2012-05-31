@@ -34,7 +34,7 @@ class Div < Reference
   end
 
   def self.count_at_poss_with_nucs( chr, poss, dmel_nuc, simyak_nuc )
-    poss.each_slice(2000).map do |sl|
+    poss.each_slice(1000).map do |sl|
       Div.where(
         "chromosome = ? and
          position in (?) and
