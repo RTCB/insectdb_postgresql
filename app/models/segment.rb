@@ -167,7 +167,7 @@ class Segment < ActiveRecord::Base
 
     div_nuc_counts =
       %W[ A C G T ].permutation(2).map do |nucs|
-        bind.map do |bind_bin|
+        Insectdb.mapp(bind) do |bind_bin|
           Insectdb::Div.count_at_poss_with_nucs('2L', bind_bin, nucs[1], nucs[0])
         end
       end
