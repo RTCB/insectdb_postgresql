@@ -172,10 +172,13 @@ class Segment < ActiveRecord::Base
         end
       end
 
-    div_nuc_counts
-      .each_slice(3)
-      .map(&:inn_sum)
-      .map.with_index { |a,i| a.divide_by(all_nuc_counts[i]) }
+    result =
+      div_nuc_counts
+        .each_slice(3)
+        .map(&:inn_sum)
+        .map.with_index { |a,i| a.divide_by(all_nuc_counts[i]) }
+
+    [result, div_nuc_counts, all_nuc_counts]
   end
 
   def self.divs_with_nucs_for( syn, scope, dmel_nuc, simyak_nuc )
