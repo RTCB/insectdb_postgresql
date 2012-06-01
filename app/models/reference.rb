@@ -65,7 +65,7 @@ class Reference < ActiveRecord::Base
     CHROMOSOMES.keys.each{|chr| self.parallel_seed(path, chr)}
   end
 
-  def self.count_nucs_at_poss( chr, poss, nuc, chunk_size = 1000 )
+  def self.count_nucs_at_poss( chr, poss, nuc, chunk_size = 10000 )
     poss.each_slice(chunk_size).map do |sl|
       self.where("chromosome = ? and
                   position in (?) and
