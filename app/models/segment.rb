@@ -153,21 +153,22 @@ class Segment < ActiveRecord::Base
     bind = Insectdb.bind
 
     syn_poss =
-      Segment.send(scope)
-             .where(:chromosome => '2L')
-             .map { |s| s.poss(syn) }
-             .flatten
+      Insectdb::Segment
+        .send(scope)
+        .where(:chromosome => '2L')
+        .map { |s| s.poss(syn) }
+        .flatten
 
     all_nuc_counts = %W[ A C G T ].map do |nuc|
       bind.map do |bind_bin|
-        Reference.count_nucs_at_poss('2L', bind_bin, nuc)
+        Insectdb::Reference.count_nucs_at_poss('2L', bind_bin, nuc)
       end
     end
 
     div_nuc_counts =
       %W[ A C G T ].permutation(2).map do |nucs|
         bind.map do |bind_bin|
-          Div.count_at_poss_with_nucs('2L', bind_bin, nucs[1], nucs[0])
+          Insectdb::Div.count_at_poss_with_nucs('2L', bind_bin, nucs[1], nucs[0])
         end
       end
 
