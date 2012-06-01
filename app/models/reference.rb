@@ -66,11 +66,11 @@ class Reference < ActiveRecord::Base
   end
 
   def self.count_nucs_at_poss( chr, poss, nuc, chunk_size = 1000 )
-    poss.each_slice(chunk_size).map do |p|
+    poss.each_slice(chunk_size).map do |sl|
       self.where("chromosome = ? and
                   position in (?) and
                   dsim_dyak = true and
-                  dsim = ?", CHROMOSOMES[chr], poss, nuc)
+                  dsim = ?", CHROMOSOMES[chr], sl, nuc)
           .count
     end.reduce(:+)
   end
