@@ -1,7 +1,10 @@
 module Insectdb
 class Div < Reference
 
-  default_scope where("dmel_sig_count >= 150 and snp = false and dsim_dyak = true and dmel_dsim = false")
+  default_scope where("dmel_sig_count >= 150 and
+                       snp = false and
+                       dsim_dyak = true and
+                       dmel_dsim = false")
 
   # Return Divs segregating at particular positions on chromosome.
   #
@@ -24,13 +27,15 @@ class Div < Reference
   end
 
   def self.count_at_poss( chr, poss )
-    self.where(
-               "chromosome = ? and
-                position in (?) and
-                dmel_dsim = false and
-                dmel != 'N'",
-                CHROMOSOMES[chr], poss
-    ).count
+    return 0 if poss.empty?
+    timer = nil
+    warn "\nEntering Div::count_at_poss for #{chr} with array of #{poss.size} positions"
+    poss.each_slice(100000)
+        .tap { |a| warn "Positions array sliced into #{a.count} pieces" }
+        .tap { warn "Processing slices"; timer = Time.now }
+        .map { |sli| self.where( "chromosome = ? and position in (?) and dmel_dsim = false and dmel != 'N'", CHROMOSOMES[chr], sli).count }
+        .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
+        .reduce(:+)
   end
 
   def self.count_at_poss_with_nucs( chr, poss, dmel_nuc, simyak_nuc, chunk_size = 10000 )

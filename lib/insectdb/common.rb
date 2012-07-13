@@ -1,5 +1,13 @@
 module Insectdb
 
+  def self.reconnect
+    ActiveRecord::Base.connection.reconnect!
+  rescue PG::Error => e
+    warn "Failed to connect, will try again in a second"
+    sleep(1)
+    retry
+  end
+
   # Public: Execute map in parallel processes on array.
   def self.mapp( array, processes = 8, &block )
     Parallel.map(array, :in_processes => processes) do |el|

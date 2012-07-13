@@ -13,22 +13,37 @@ class Segment < ActiveRecord::Base
   scope :cass, where(:cassette => true)
   scope :noncass, where(:cassette => false)
 
-  EXON_SHIFT = 5
-  INTRON_SHIFT = 30
+  # This vars should be set in the environment
+  # EXON_SHIFT = 0
+  # INTRON_SHIFT = 30
 
   # Public: Clear all fields like _* in table.
   #
   # Returns true, always =).
   def self.clear_cache
-    self.all.each do |s|
-      s.update_attributes(
-        "_codons" => nil,
-        "_syn_poss" => nil,
-        "_nonsyn_poss" => nil,
-        "_ref_seq" => nil
-      )
-    end
-    true
+    ActiveRecord::Base.connection.execute("
+      UPDATE segments SET
+      _codons=NULL,
+      _syn_poss=NULL,
+      _nonsyn_poss=NULL,
+      _ref_seq=NULL
+    ")
+    warn "Cache fields successfully cleared in table Segments"
+  end
+
+  def self.set_shifts( exon_shift, intron_shift )
+    ENV['INTRON_SHIFT'] = intron_shift.to_s
+    ENV['EXON_SHIFT']   = exon_shift.to_s
+    warn "Exon shift set to: #{self.exon_shift}"
+    warn "Intron shift set to: #{self.intron_shift}"
+  end
+
+  def self.exon_shift
+    ENV['EXON_SHIFT'].to_i || 0
+  end
+
+  def self.intron_shift
+    ENV['INTRON_SHIFT'].to_i || 0
   end
 
   def self.divs_per_bin_for( syn, query )
@@ -193,6 +208,131 @@ class Segment < ActiveRecord::Base
     end
   end
 
+  def self.pd( c, query )
+    timer = nil
+
+    syn_pos =
+      query.where(:chromosome => c)
+           .tap { |q| warn "\nEntering Segment::pd for #{c} and query of #{q.count} elements"}
+           .tap { warn "Extracting syn positions..."; timer = Time.now}
+           .map { |s| s.poss('syn') }
+           .flatten
+           .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
+
+    nsyn_pos =
+      query.where(:chromosome => c)
+           .tap { warn "Extracting nonsyn positions..."; timer = Time.now}
+           .map { |s| s.poss('nonsyn') }
+           .flatten
+           .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
+
+    ds = Div.count_at_poss(c, syn_pos)
+    dn = Div.count_at_poss(c, nsyn_pos)
+    ps = Snp.count_at_poss(c, syn_pos)
+    pn = Snp.count_at_poss(c, nsyn_pos)
+
+    [[syn_pos, nsyn_pos], ds, dn, ps, pn]
+  end
+
+  # Execute MacDonald-Kreitman test for segments returned by query
+  def self.mk( query, exon_shift, snp_margin )
+    Insectdb.reconnect
+    Insectdb::Segment.clear_cache
+    Insectdb::Segment.set_shifts(exon_shift, 0)
+    Insectdb::Snp.set_margin(snp_margin)
+    Insectdb.reconnect
+
+    # raw =
+    #   Insectdb.mapp(%W[2L 2R 3L 3R X]) { |c| self.pd(c, query) }
+    #   .reduce() { |p,n| p.map.with_index { |v,i| v+n[i] } }
+    raw =
+      %W[2L 2R 3L 3R X].map { |c| self.pd(c, query) }
+                       .reduce { |p,n| p.map.with_index { |v,i| v+n[i] } }
+
+    length_sum = query.map(&:length).reduce(:+)
+
+    poss_counts =
+      raw[0].each_slice(2)
+            .reduce{|s,n| [s[0]+n[0],s[1]+n[1]]}
+            .map(&:count)
+
+    norm = poss_counts.reduce(:+).to_f
+
+    ds_norm = raw[1]/norm
+    dn_norm = raw[2]/norm
+    ps_norm = raw[3]/norm
+    pn_norm = raw[4]/norm
+
+    ds_per_syn_poss    = (raw[1]/poss_counts[0].to_f)*100
+    dn_per_nonsyn_poss = (raw[2]/poss_counts[1].to_f)*100
+    ps_per_syn_poss    = (raw[3]/poss_counts[0].to_f)*100
+    pn_per_nonsyn_poss = (raw[4]/poss_counts[1].to_f)*100
+
+    alpha = 1-((ds_norm*pn_norm)/(dn_norm*ps_norm))
+
+    {
+      :alphaNorm => alpha.round(4),
+      :dsNorm => ds_norm.round(4),
+      :dnNorm => dn_norm.round(4),
+      :psNorm => ps_norm.round(4),
+      :pnNorm => pn_norm.round(4),
+      :ds => raw[1],
+      :dn => raw[2],
+      :ps => raw[3],
+      :pn => raw[4],
+      :dsPerCent => ds_per_syn_poss.round(4),
+      :dnPerCent => dn_per_nonsyn_poss.round(4),
+      :psPerCent => ps_per_syn_poss.round(4),
+      :pnPerCent => pn_per_nonsyn_poss.round(4),
+      :synPoss => poss_counts[0].to_i,
+      :nonsynPoss => poss_counts[1].to_i,
+      :possSum => norm.to_i,
+      :lengthSum => length_sum.to_i
+    }
+  end
+
+  def self.mk_formatted( query, exon_shift )
+    mk100 = self.mk(query, exon_shift, 100)
+    mk85  = self.mk(query, exon_shift, 85)
+    puts "%tr"
+    puts "\s\s%td\n\s\s#{mk100[:alphaNorm]}&emsp;#{mk85[:alphaNorm]}"
+    puts "\s\s%td\n\s\s#{mk100[:dnNorm]}"
+    puts "\s\s%td\n\s\s#{mk100[:dsNorm]}"
+    puts "\s\s%td\n\s\s#{mk100[:pnNorm]}&emsp;#{mk85[:pnNorm]}"
+    puts "\s\s%td\n\s\s#{mk100[:psNorm]}&emsp;#{mk85[:psNorm]}"
+    puts "%tr"
+    puts "\s\s%td\n\s\s#{mk100[:dn]}"
+    puts "\s\s%td\n\s\s#{mk100[:dnPerCent]}"
+    puts "\s\s%td\n\s\s#{mk100[:ds]}"
+    puts "\s\s%td\n\s\s#{mk100[:dsPerCent]}"
+    puts "\s\s%td\n\s\s#{mk100[:pn]}"
+    puts "\s\s%td\n\s\s#{mk100[:pnPerCent]}"
+    puts "\s\s%td\n\s\s#{ mk85[:pn]}"
+    puts "\s\s%td\n\s\s#{ mk85[:pnPerCent]}"
+    puts "\s\s%td\n\s\s#{mk100[:ps]}"
+    puts "\s\s%td\n\s\s#{mk100[:psPerCent]}"
+    puts "\s\s%td\n\s\s#{ mk85[:ps]}"
+    puts "\s\s%td\n\s\s#{ mk85[:psPerCent]}"
+    puts "\s\s%td\n\s\s#{mk100[:synPoss]}"
+    puts "\s\s%td\n\s\s#{mk100[:nonsynPoss]}"
+    puts "\s\s%td\n\s\s#{mk100[:lengthSum]}"
+    puts "\s\s%td\n\s\s#{Insectdb::Segment.exon_shift.to_s}"
+    puts "\s\s%td\n\s\s#{Insectdb::Snp.margin.to_s}"
+  end
+
+  def self.stats_for_query( query )
+    syn = query.map{|s| s.poss('syn').count}.reduce(:+)
+    nonsyn = query.map{|s| s.poss('nonsyn').count}.reduce(:+)
+
+    smry =
+      Insectdb.mapp(%W[2L 2R 3L 3R X]) { |c| self.pd(c, query) }
+              .reduce() { |p,n| p.map.with_index { |v,i| v+n[i] } }
+    d = [syn,nonsyn] + smry[1..(-1)]
+
+    puts "%tr"
+    d.each { |v| puts "\s\s%td\n\s\s\s\s#{v}" }
+  end
+
   # Public: Return all codons for segment as strings of size 3.
   #
   # Examples
@@ -215,7 +355,7 @@ class Segment < ActiveRecord::Base
   #
   # @return [Fixnum] shift size in bp
   def shift
-    type == 'intron' ? INTRON_SHIFT : EXON_SHIFT
+    type == 'intron' ? Insectdb::Segment.intron_shift : Insectdb::Segment.exon_shift
   end
 
   # Return frequencies of snps segregating at synonymous positions.

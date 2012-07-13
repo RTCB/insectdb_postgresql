@@ -1,0 +1,4 @@
+module Insectdb
+module ReportGenerator
+end
+end

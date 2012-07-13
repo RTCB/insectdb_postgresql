@@ -4,7 +4,9 @@ module Insectdb
 module Config
 
   PATHS = {
-    :bind => 'data/dm3_basepairs_2L_out'
+    :bind => 'data/dm3_basepairs_2L_out',
+    :segmentGain => 'data/segment_gain.csv',
+    :segmentInclusion => 'data/incl_changes_for_segments'
   }
 
   def self.open( file )

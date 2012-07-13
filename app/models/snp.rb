@@ -3,6 +3,15 @@ class Snp < Reference
 
   default_scope where("dmel_sig_count >= 150 and snp = true")
 
+  def self.set_margin( margin_val )
+    ENV["SNP_MARGIN"] = margin_val.to_s
+    warn "SNP margin set to #{self.margin}"
+  end
+
+  def self.margin
+    ENV["SNP_MARGIN"].to_i || 85
+  end
+
   def self.at_poss( chr, poss )
     query =
       self.where(
@@ -15,12 +24,22 @@ class Snp < Reference
     end
   end
 
+  # Mind the non_anc_allele_freq_margin!!!
   def self.count_at_poss( chr, poss )
-    query =
-      self.where("chromosome = ? and position in (?)",
-                  CHROMOSOMES[chr], poss)
-          .count
+    return 0 if poss.empty?
+    timer = nil
 
+    warn "\nEntering Snp::count_at_poss for #{chr} with array of #{poss.size} positions"
+    poss.each_slice(100000)
+        .tap { |a| warn "Positions array sliced into #{a.count} pieces" }
+        .tap { warn "Processing slices"; timer = Time.now }
+        .map do |sli|
+          self.where( "chromosome = ? and position in (?)",
+                       CHROMOSOMES[chr], sli
+                    ).to_a.count{ |snp| snp.anc_allele_freq <= self.margin }
+        end
+        .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
+        .reduce(:+)
   end
 
   # Return alleles of SNPs segregating at given positions.
@@ -49,6 +68,14 @@ class Snp < Reference
     freq(strand)
       .select{|k| k!=allele}
       .sort_by{|a| a[1]}[-1][1]
+  end
+
+  def anc_allele_freq
+    ((self.freq[self.anc_allele].to_f)/self.dmel_sig_count)*100
+  end
+
+  def non_anc_allele_freq
+    100-self.anc_allele_freq
   end
 
   # Get allele frequencies with complimentary nucleotides.

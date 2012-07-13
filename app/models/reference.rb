@@ -125,18 +125,21 @@ class Reference < ActiveRecord::Base
 
   # Returns: A String
   def self.seq_for( chromosome, start, stop )
-    self
-      .where("chromosome = ? and position between ? and ?",
-              CHROMOSOMES[chromosome], start, stop)
-      .order("position")
-      .map{|r| (r['dsim_dyak'] && r['dmel_sig_count'] >= 150) ? r['dsim'] : 'N'}
-      .join
+    self.where("chromosome = ? and position between ? and ?",
+                CHROMOSOMES[chromosome], start, stop)
+        .order("position")
+        .map{|r| (r['dsim_dyak'] && r['dmel_sig_count'] >= 150) ? r['dsim'] : 'N'}
+        .join
   end
 
   def self.na_eq?( char_1, char_2 )
     (%W[A C G T].include?(char_1)) &&
     (%W[A C G T].include?(char_2)) &&
     (char_1 == char_2)
+  end
+
+  def anc_allele
+    self.dsim == self.dyak ? self.dsim : 'N'
   end
 
 end
