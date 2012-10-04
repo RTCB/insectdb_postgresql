@@ -1,5 +1,11 @@
 module Insectdb
 
+  CHROMOSOMES = {'2R' => 0,
+                 '2L' => 1,
+                 '3R' => 2,
+                 '3L' => 3,
+                 'X'  => 4}
+
   def self.reconnect
     ActiveRecord::Base.connection.reconnect!
   rescue PG::Error => e

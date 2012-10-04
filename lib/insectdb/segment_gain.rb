@@ -25,5 +25,6 @@ module SegmentGain
           [a[0], a[1].empty? ? nil : Insectdb::Segment.mkd_for(Insectdb::Segment.where("id in (?)", a[1])) ]
         end.to_hash
   end
+
 end
 end

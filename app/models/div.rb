@@ -1,17 +1,8 @@
 module Insectdb
-class Div < Reference
+class Div < ActiveRecord::Base
 
-  default_scope where("dmel_sig_count >= 150 and
-                       snp = false and
-                       dsim_dyak = true and
-                       dmel_dsim = false")
+  # default_scope where("dmel_sig_count >= 150 and snp = false and dsim_dyak = true and dmel_dsim = false")
 
-  # Return Divs segregating at particular positions on chromosome.
-  #
-  # @example
-  #   Div.at_poss('2R', [1,2,3]) => [nil, ReferenceObj, nil]
-  #
-  # @return [Array]
   def self.at_poss( chr, poss )
     query =
       self.where(
@@ -20,7 +11,7 @@ class Div < Reference
                    dsim_dyak=true  and
                    dmel_dsim=false and
                    dmel != 'N'",
-                   CHROMOSOMES[chr], poss
+                   Insectdb::CHROMOSOMES[chr], poss
                 )
 
     poss.map { |pos| query.find { |div| div.position == pos }}
@@ -28,13 +19,13 @@ class Div < Reference
 
   def self.count_at_poss( chr, poss )
     return 0 if poss.empty?
-    timer = nil
-    warn "\nEntering Div::count_at_poss for #{chr} with array of #{poss.size} positions"
+    # timer = nil
+    # warn "\nEntering Div::count_at_poss for #{chr} with array of #{poss.size} positions"
+    # .tap { |a| warn "Positions array sliced into #{a.count} pieces" }
+    # .tap { warn "Processing slices"; timer = Time.now }
+    # .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
     poss.each_slice(100000)
-        .tap { |a| warn "Positions array sliced into #{a.count} pieces" }
-        .tap { warn "Processing slices"; timer = Time.now }
-        .map { |sli| self.where( "chromosome = ? and position in (?) and dmel_dsim = false and dmel != 'N'", CHROMOSOMES[chr], sli).count }
-        .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
+        .map { |sli| self.where( "chromosome = ? and position in (?) and dmel_dsim = false and dmel != 'N'", Insectdb::CHROMOSOMES[chr], sli).count }
         .reduce(:+)
   end
 
@@ -44,7 +35,7 @@ class Div < Reference
         "chromosome = ? and
          position in (?) and
          dmel = ? and dsim = ?",
-         CHROMOSOMES[chr], sl, dmel_nuc, simyak_nuc
+         Insectdb::CHROMOSOMES[chr], sl, dmel_nuc, simyak_nuc
       ).count
     end.reduce(:+)
   end

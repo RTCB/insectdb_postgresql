@@ -7,7 +7,7 @@ task :yard do
   `rm -rf .yardoc && yard server --reload`
 end
 
-desc "Execute ctags on all code"
+desc "Run ctags"
 task :tag do
   `ctags -R --exclude=.git --exclude=log *`
 end
@@ -25,10 +25,15 @@ end
 
 namespace :db do
 
-  namespace :test do
-    task :prepare => 'env:test' do
-      Rake::Task['db:migrate'].invoke
+  def create_database config
+    options = {:charset => 'utf8', :collation => 'utf8_unicode_ci'}
+
+    create_db = lambda do |config|
+      ActiveRecord::Base.establish_connection config.merge('database' => nil)
+      ActiveRecord::Base.connection.create_database config['database'], options
+      ActiveRecord::Base.establish_connection config
     end
+    create_db.call config
   end
 
   task :environment do
@@ -48,6 +53,12 @@ namespace :db do
   desc 'Create the database from config/database.yml for the current DATABASE_ENV'
   task :create => :configure_connection do
     create_database @config
+  end
+
+  # This task seeds the database with sequence and annotation data.
+  desc 'Seed database with data'
+  task :seed => :configure_connection do
+
   end
 
   desc 'Drops the database for the current DATABASE_ENV'
@@ -71,4 +82,16 @@ namespace :db do
   task :version => :configure_connection do
     puts "Current version: #{ActiveRecord::Migrator.current_version}"
   end
+
+  namespace :test do
+    task :connect => ['env:test', 'db:configure_connection']
+
+    task :create => ['connect', 'db:create', 'db:migrate']
+
+    desc "Prepare test DB"
+    task :prepare => ['connect', 'db:migrate']
+
+    task :drop => ['env:test', 'db:drop']
+  end
+
 end

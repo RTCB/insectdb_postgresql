@@ -1,5 +1,7 @@
 module Insectdb
 class Mrna < ActiveRecord::Base
+  serialize :supp, Hash
+
   has_and_belongs_to_many :segments
 
   def self.clear_cache
@@ -7,6 +9,21 @@ class Mrna < ActiveRecord::Base
       m.update_attributes("_seq" => nil)
     end
     true
+  end
+
+  def self.seed( path )
+    File.open(File.join(path),'r') do |f|
+      f.lines.each do |l|
+        l = l.chomp.split
+        Insectdb::Mrna.create!(
+          :id         => l[0],
+          :chromosome => l[1],
+          :strand     => l[2],
+          :start      => l[3],
+          :stop       => l[4]
+        )
+      end
+    end
   end
 
   # @return [Array] ['ATG','GGT','TTA','GCT']
@@ -31,22 +48,6 @@ class Mrna < ActiveRecord::Base
       update_attributes("_seq" => JSON.dump(strand == '+' ? s : s.reverse))
     end
     JSON.parse(_seq)
-  end
-
-  def self.seed( path )
-    File.open(File.join(path,'mrnas'),'r') do |f|
-      f.lines.each do |l|
-        l = l.chomp.split
-        seg = self.new do |seg|
-          seg.id = l[0]
-          seg.chromosome = l[1]
-          seg.strand = l[2]
-          seg.start = l[3]
-          seg.stop = l[4]
-          seg.save
-        end
-      end
-    end
   end
 
 end

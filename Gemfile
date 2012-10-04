@@ -1,7 +1,15 @@
 source "http://rubygems.org"
 
-gem 'my_ruby_extensions',
-  :path => "../my_ruby_extensions"
+group :development do
+  gem 'rspec'
+  gem 'parallel_tests'
+  gem 'mocha'
+  gem 'database_cleaner'
+end
 
-# Specify your gem's dependencies in insectdb.gemspec
-gemspec
+gem 'pg'
+gem 'activerecord'
+gem 'bio'
+gem 'parallel'
+
+gem 'my_ruby_extensions', :path => "/home/anzaika/loc_projects/my_ruby_extensions"

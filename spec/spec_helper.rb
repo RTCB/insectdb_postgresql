@@ -1,5 +1,7 @@
 require 'insectdb'
-require 'rspec'
-require 'mocha'
+require 'database_cleaner'
+require 'mocha_standalone'
+
+DatabaseCleaner.strategy = :transaction
 
 ENV['ENV'] = 'test'

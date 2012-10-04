@@ -4,9 +4,14 @@ module Insectdb
 module Config
 
   PATHS = {
-    :bind => 'data/dm3_basepairs_2L_out',
-    :segmentGain => 'data/segment_gain.csv',
-    :segmentInclusion => 'data/incl_changes_for_segments'
+    :bind             => 'data/dm3_basepairs_2L_out',
+    :segmentGain      => 'data/segment_gain.csv',
+    :segmentInclusion => 'data/incl_changes_for_segments',
+    :segments         => 'db/seed/annotation/segments',
+    :mrnas            => 'db/seed/annotation/mrnas',
+    :genes            => 'db/seed/annotation/genes',
+    'genes_mrnas'     => 'db/seed/annotation/genes_mrnas',
+    'mrnas_segments'  => 'db/seed/annotation/mrnas_segments'
   }
 
   def self.open( file )

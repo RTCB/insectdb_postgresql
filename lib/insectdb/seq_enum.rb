@@ -1,15 +1,18 @@
+require 'bio'
+
 module Insectdb
 class SeqEnum
   attr_reader :length
 
   def initialize(input, is_path = true)
     @seq = (is_path ? fagz_to_seq(input) : input)
+    sanitize
     @length = @seq.length
     @pntr = -1
   end
 
   def next
-    @pntr < (@length-1) ? f(@seq[@pntr+=1]) : 'N'
+    @pntr < (@length-1) ? @seq[@pntr+=1] : 'N'
   end
 
   def rewind
@@ -30,8 +33,8 @@ class SeqEnum
 
   private
 
-  def f( char )
-    %W[ A C G T ].include?(char) ? char : 'N'
+  def sanitize
+    @seq.gsub!(/[^ACGTN]/,'N')
   end
 
   def fagz_to_seq( fagz_file_path )

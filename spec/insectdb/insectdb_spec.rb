@@ -1,11 +1,12 @@
 require 'spec_helper'
-require 'fakefs'
 
 module Insectdb
   describe "bind" do
     it "should return positions clustered" do
-      path = Insectdb::Config.path_to(:bind)
-      FakeFS::FileSystem.add(File.dirname(path))
+
+      path = "/var/tmp/bind"
+
+      Insectdb::Config.expects(:path_to).with(:bind).returns(path)
 
       File.open(path,'w') do |f|
         f << %W[

@@ -2,12 +2,6 @@ module Insectdb
 class Reference < ActiveRecord::Base
   self.table_name = 'reference'
 
-  CHROMOSOMES = {'2R' => 0,
-                 '2L' => 1,
-                 '3R' => 2,
-                 '3L' => 3,
-                 'X'  => 4}
-
   def self.seed_binding( path )
     binding =
       File.open(path)
@@ -62,7 +56,7 @@ class Reference < ActiveRecord::Base
   end
 
   def self.pl_seed( path )
-    CHROMOSOMES.keys.each{|chr| self.parallel_seed(path, chr)}
+    Insectdb::CHROMOSOMES.keys.each{|chr| self.parallel_seed(path, chr)}
   end
 
   def self.count_nucs_at_poss( chr, poss, nuc, chunk_size = 10000 )
@@ -141,6 +135,5 @@ class Reference < ActiveRecord::Base
   def anc_allele
     self.dsim == self.dyak ? self.dsim : 'N'
   end
-
 end
 end

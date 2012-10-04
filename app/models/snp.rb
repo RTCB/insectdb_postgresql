@@ -1,7 +1,19 @@
 module Insectdb
-class Snp < Reference
+class Snp < ActiveRecord::Base
+  serialize :alleles, Hash
 
-  default_scope where("dmel_sig_count >= 150 and snp = true")
+  # default_scope where("dmel_sig_count >= 150 and snp = true")
+
+  # @param [Array] col
+  def self.from_col( col, chr, pos )
+    self.create(
+      :chromosome => chr,
+      :position => pos,
+      :sig_count => col.select { |n| n != 'N' }.size,
+      :alleles => col.select{ |n| n != 'N'}
+                     .inject(Hash.new(0)) { |mem, var| mem[var]+=1; mem }
+    )
+  end
 
   def self.set_margin( margin_val )
     ENV["SNP_MARGIN"] = margin_val.to_s
@@ -12,33 +24,41 @@ class Snp < Reference
     ENV["SNP_MARGIN"].to_i || 85
   end
 
+  def self.allele_freq_dist_at_poss( chr, poss )
+    self.where( "chromosome = ? and position in (?)", Insectdb::CHROMOSOMES[chr], poss)
+        .select('id, dsim, dyak, snp_alleles, dmel_sig_count')
+        .group_by{ |r| r.anc_allele_freq.to_i }
+        .map { |a| [a[0],a[1].count] }
+        .to_hash
+  end
+
   def self.at_poss( chr, poss )
     query =
       self.where(
                   "chromosome = ? and position in (?)",
-                   CHROMOSOMES[chr], poss
+                   Insectdb::CHROMOSOMES[chr], poss
                 )
 
     poss.map do |pos|
-      query.find{|snp| snp.position == pos}
+      query.find{ |snp| snp.position == pos }
     end
   end
 
   # Mind the non_anc_allele_freq_margin!!!
   def self.count_at_poss( chr, poss )
     return 0 if poss.empty?
-    timer = nil
 
-    warn "\nEntering Snp::count_at_poss for #{chr} with array of #{poss.size} positions"
+    # timer = nil
+    # warn "\nEntering Snp::count_at_poss for #{chr} with array of #{poss.size} positions"
+    # .tap { |a| warn "Positions array sliced into #{a.count} pieces" }
+    # .tap { warn "Processing slices"; timer = Time.now }
+    # .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
     poss.each_slice(100000)
-        .tap { |a| warn "Positions array sliced into #{a.count} pieces" }
-        .tap { warn "Processing slices"; timer = Time.now }
         .map do |sli|
           self.where( "chromosome = ? and position in (?)",
-                       CHROMOSOMES[chr], sli
+                       Insectdb::CHROMOSOMES[chr], sli
                     ).to_a.count{ |snp| snp.anc_allele_freq <= self.margin }
         end
-        .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
         .reduce(:+)
   end
 
