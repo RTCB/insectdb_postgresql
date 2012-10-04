@@ -5,6 +5,7 @@ group :development do
   gem 'parallel_tests'
   gem 'mocha'
   gem 'database_cleaner'
+  gem 'autotest-standalone'
 end
 
 gem 'pg'
