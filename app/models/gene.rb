@@ -1,6 +1,7 @@
 module Insectdb
-class MrnasSegments < ActiveRecord::Base
-  self.table_name = 'mrnas_segments'
+class Gene < ActiveRecord::Base
+
+  has_and_belongs_to_many :mrnas
 
   validates :mrnas_id,
             :presence => true,
@@ -9,5 +10,6 @@ class MrnasSegments < ActiveRecord::Base
   validates :segment_id,
             :presence => true,
             :numericality => { :only_integer => true }
+
 end
 end

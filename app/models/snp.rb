@@ -2,17 +2,67 @@ module Insectdb
 class Snp < ActiveRecord::Base
   serialize :alleles, Hash
 
-  # default_scope where("dmel_sig_count >= 150 and snp = true")
+  validates :chromosome,
+            :presence => true,
+            :numericality => { :only_integer => true },
+            :inclusion => { :in => [0, 1, 2, 3, 4] }
 
-  # @param [Array] col
+  validates :position,
+            :presence => true,
+            :numericality => { :only_integer => true }
+
+  validates :sig_count,
+            :presence => true,
+            :numericality => { :only_integer => true }
+
+  validates :alleles,
+            :presence => true
+
+  # Public: Create a new record from an array of nucleotides.
+  #
+  # col - The Array with nucleotides.
+  # chr - The String with chromosome.
+  # pos - The Integer with position of nucleotide column.
+  #
+  # Examples:
+  #
+  #   Insectdb::Snp.from_col(
+  #     ['A','A','A','A','C','C'],
+  #     '2R',
+  #     87765
+  #   )
+  #
+  # Returns the Insectdb::Snp object.
   def self.from_col( col, chr, pos )
-    self.create(
-      :chromosome => chr,
-      :position => pos,
-      :sig_count => col.select { |n| n != 'N' }.size,
-      :alleles => col.select{ |n| n != 'N'}
-                     .inject(Hash.new(0)) { |mem, var| mem[var]+=1; mem }
-    )
+    self.create!(
+      :chromosome => Insectdb::CHROMOSOMES[chr],
+      :position   => pos,
+      :sig_count  => col.select { |n| n != 'N' }.size,
+      :alleles    => col.select{ |n| n != 'N'}
+                        .inject(Hash.new(0)) { |mem, var| mem[var]+=1; mem })
+  end
+
+  # Public: When parsing 163 aligned Drosophila melanogaster sequences column
+  #         by column, it is necessary to check each column for being a
+  #         polymorphic column.
+  #         By definition the column of nucleotides is considered to be
+  #         polymorphic if contains more than two types of nucleotide letters.
+  #         See the examples for details.
+  #
+  # col - The Array with nucleotides
+  #
+  # Examples:
+  #
+  #   Insectdb::Snp.column_is_polymorphic?(%W[ A A C ]) # => true
+  #   Insectdb::Snp.column_is_polymorphic?(%W[ A G C ]) # => true
+  #   Insectdb::Snp.column_is_polymorphic?(%W[ A A N ]) # => false
+  #   Insectdb::Snp.column_is_polymorphic?(%W[ A A A ]) # => false
+  #   Insectdb::Snp.column_is_polymorphic?(%W[ N N N ]) # => false
+  #   Insectdb::Snp.column_is_polymorphic?([])          # => false
+  #
+  # Returns The Boolean.
+  def self.column_is_polymorphic?( col )
+    col.select{ |n| %W[A C G T].include?(n) }.uniq.size > 1
   end
 
   def self.set_margin( margin_val )
@@ -25,7 +75,9 @@ class Snp < ActiveRecord::Base
   end
 
   def self.allele_freq_dist_at_poss( chr, poss )
-    self.where( "chromosome = ? and position in (?)", Insectdb::CHROMOSOMES[chr], poss)
+    self.where( "chromosome = ? and position in (?)",
+                Insectdb::CHROMOSOMES[chr],
+                poss )
         .select('id, dsim, dyak, snp_alleles, dmel_sig_count')
         .group_by{ |r| r.anc_allele_freq.to_i }
         .map { |a| [a[0],a[1].count] }
@@ -103,13 +155,6 @@ class Snp < ActiveRecord::Base
   # @return [Hash] {'T' => 0.01, 'C' => 0.99 }
   def _comp_freq
     _freq.map{|f| f[0] = Contig.complement(f[0]);f}.to_hash
-  end
-
-  # Parse JSON data in 'frequencies' field.
-  #
-  # @return [Hash]
-  def _freq
-    JSON.parse(snp_alleles)
   end
 
 end

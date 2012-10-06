@@ -5,7 +5,6 @@ describe Insectdb::SeqEnum do
 before(:each) {@seq = Insectdb::SeqEnum.new('ATG', false)}
 
 describe '#new' do
-
   it "initializes correctly from string" do
     seq = Insectdb::SeqEnum.new('ACG', false)
     seq.seq.join.should == 'ACG'

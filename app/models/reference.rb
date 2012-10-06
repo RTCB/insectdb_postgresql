@@ -2,6 +2,55 @@ module Insectdb
 class Reference < ActiveRecord::Base
   self.table_name = 'reference'
 
+  validates :chromosome,
+            :presence => true,
+            :numericality => { :only_integer => true },
+            :inclusion => { :in => [0, 1, 2, 3, 4] }
+
+  validates :position,
+            :presence => true,
+            :numericality => { :only_integer => true }
+
+  validates :dmel,
+            :presence => true,
+            :inclusion => { :in => %W[ A C G T N ]}
+
+  validates :dsim,
+            :presence => true,
+            :inclusion => { :in => %W[ A C G T N ]}
+
+  validates :dyak,
+            :presence => true,
+            :inclusion => { :in => %W[ A C G T N ]}
+
+  # Public: Create a new record from a hash with nucleotides.
+  #
+  # hash - The Hash with three keys :dmel, :dsim, :dyak.
+  #        Each pointing to one nucleotide.
+  # chr  - The String with chromosome name.
+  # pos  - The Integer with position.
+  #
+  # Examples:
+  #
+  #   Inscectdb::Reference.from_hash(
+  #     { :dmel => 'A',
+  #       :dsim => 'A',
+  #       :dyak => 'C' },
+  #     '2L',
+  #     69234
+  #   )
+  #
+  # Returns Insectdb::Reference object
+  def self.from_hash( hash, chr, pos )
+    self.create!(
+      :chromosome => Insectdb::CHROMOSOMES[chr],
+      :position => pos,
+      :dmel => hash[:dmel],
+      :dsim => hash[:dsim],
+      :dyak => hash[:dyak]
+    )
+  end
+
   def self.seed_binding( path )
     binding =
       File.open(path)

@@ -2,7 +2,6 @@ require 'spec_helper'
 
 module Insectdb
 describe "bind" do
-
   it "should return positions clustered" do
     path = "/var/tmp/bind"
     Insectdb::Config.expects(:path_to).with(:bind).returns(path)
@@ -21,6 +20,5 @@ describe "bind" do
 
     Insectdb.bind.should == [[1,3,4],[5],[2,9],[11]]
   end
-
 end
 end

@@ -1,7 +1,67 @@
 module Insectdb
 class Div < ActiveRecord::Base
 
-  # default_scope where("dmel_sig_count >= 150 and snp = false and dsim_dyak = true and dmel_dsim = false")
+  validates :chromosome,
+            :presence => true,
+            :numericality => { :only_integer => true },
+            :inclusion => { :in => [0, 1, 2, 3, 4] }
+
+  validates :position,
+            :presence => true,
+            :numericality => { :only_integer => true }
+
+  # Public: Create a new record from coordinates on chromosome.
+  #
+  # chr - The String with chromosome name.
+  # pos - The Integere with position on chromosome.
+  #
+  # Examples:
+  #
+  #   Insectdb::Div.from_hash('2R', 765986)
+  #
+  # Returns The Insectdb::Div object.
+  def self.from_hash( chr, pos )
+    self.create!(
+      :chromosome => Insectdb::CHROMOSOMES[chr],
+      :position => pos
+    )
+  end
+
+  # Public: The position is considered divergent if it posesses equal
+  #         nucleotides at D.simulans and D.yakuba, but a different one at
+  #         D.melanogaster.
+  #
+  # hash - The Hash with nucleotides,
+  #        e.g. {:dmel => 'A', :dsim => 'A', :dyak => 'G'}
+  #
+  # Examples:
+  #
+  #   Insectdb::Div.position_is_divergent?({ :dmel => 'A',
+  #                                          :dsim => 'G',
+  #                                          :dyak => 'G',}) # => true
+  #
+  #   Insectdb::Div.position_is_divergent?({ :dmel => 'A',
+  #                                          :dsim => 'N',
+  #                                          :dyak => 'N',}) # => false
+  #
+  #   Insectdb::Div.position_is_divergent?({ :dmel => 'N',
+  #                                          :dsim => 'A',
+  #                                          :dyak => 'A',}) # => false
+  #
+  #   Insectdb::Div.position_is_divergent?({ :dmel => 'N',
+  #                                          :dsim => 'N',
+  #                                          :dyak => 'N',}) # => false
+  #
+  #   Insectdb::Div.position_is_divergent?({ :dmel => 'A',
+  #                                          :dsim => 'G',
+  #                                          :dyak => 'C',}) # => false
+  #
+  # Returns The Boolean.
+  def self.position_is_divergent?( hash )
+    (hash[:dsim] == hash[:dyak]) &&
+    (hash[:dmel] != hash[:dsim]) &&
+    !hash.values.include?('N')
+  end
 
   def self.at_poss( chr, poss )
     query =

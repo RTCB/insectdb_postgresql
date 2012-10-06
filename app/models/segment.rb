@@ -9,6 +9,27 @@ class Segment < ActiveRecord::Base
   scope :int, where(:type => 'intron')
   scope :coding, where("type != 'intron'")
 
+  validates :chromosome,
+            :presence => true,
+            :numericality => { :only_integer => true },
+            :inclusion => { :in => [0, 1, 2, 3, 4] }
+
+  validates :start,
+            :presence => true,
+            :numericality => { :only_integer => true }
+
+  validates :stop,
+            :presence => true,
+            :numericality => { :only_integer => true }
+
+  validates :length,
+            :presence => true,
+            :numericality => { :only_integer => true }
+
+  validates :type,
+            :presence => true
+
+
   # This vars should be set in the environment
   # EXON_SHIFT = 0
   # INTRON_SHIFT = 30
@@ -88,22 +109,6 @@ class Segment < ActiveRecord::Base
     warn 'Looks like finished'
   end
 
-  def self.seed( path )
-    File.open(File.join(path),'r') do |f|
-      Insectdb.peach(f.lines.to_a, 16) do |l|
-        l = l.chomp.split
-        Insectdb::Segment.create!(
-          :id         => l[0],
-          :chromosome => l[1],
-          :start      => (l[2].to_i - 1),
-          :stop       => (l[3].to_i - 1),
-          :type       => l[4],
-          :length     => (l[3].to_i - 1)-(l[2].to_i - 1)
-        )
-      end
-    end
-    puts 'Segments successfully loaded'
-  end
 
   # Set cassette field for each alternatively spliced segment.
   #

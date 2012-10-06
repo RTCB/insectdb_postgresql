@@ -15,16 +15,18 @@ require 'parallel'
 require 'json'
 require 'matrix'
 
-ActiveRecord::Base.establish_connection(
-  Insectdb::Config.database
-)
+# ActiveRecord::Base.establish_connection(
+#   Insectdb::Config.database
+# )
 
 require_relative '../app/models/mrna'
+require_relative '../app/models/gene'
 require_relative '../app/models/reference'
 require_relative '../app/models/div'
 require_relative '../app/models/segment'
 require_relative '../app/models/snp'
 require_relative '../app/models/mrnas_segments'
+require_relative '../app/models/genes_mrnas'
 
 require 'zlib'
 require 'fileutils'

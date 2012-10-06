@@ -2,7 +2,25 @@ module Insectdb
 class Mrna < ActiveRecord::Base
   serialize :supp, Hash
 
+  has_and_belongs_to_many :genes
   has_and_belongs_to_many :segments
+
+  validates :chromosome,
+            :presence => true,
+            :numericality => { :only_integer => true },
+            :inclusion => { :in => [0, 1, 2, 3, 4] }
+
+  validates :start,
+            :presence => true,
+            :numericality => { :only_integer => true }
+
+  validates :stop,
+            :presence => true,
+            :numericality => { :only_integer => true }
+
+  validates :strand,
+            :presence => true,
+            :inclusion => { :in => %W[ + - ] }
 
   def self.clear_cache
     Insectdb.peach(Mrna.all) do |m|
@@ -11,20 +29,6 @@ class Mrna < ActiveRecord::Base
     true
   end
 
-  def self.seed( path )
-    File.open(File.join(path),'r') do |f|
-      f.lines.each do |l|
-        l = l.chomp.split
-        Insectdb::Mrna.create!(
-          :id         => l[0],
-          :chromosome => l[1],
-          :strand     => l[2],
-          :start      => l[3],
-          :stop       => l[4]
-        )
-      end
-    end
-  end
 
   # @return [Array] ['ATG','GGT','TTA','GCT']
   def codons_btwn( start, stop )

@@ -2,6 +2,7 @@ class CreateAll < ActiveRecord::Migration
 
   def up
     create_snps
+    create_divs
     create_reference
     create_segments
     create_mrnas
@@ -17,17 +18,11 @@ class CreateAll < ActiveRecord::Migration
       t.string  :dmel
       t.string  :dsim
       t.string  :dyak
-      t.boolean :dmel_dsim
-      t.boolean :dsim_dyak
     end
 
     add_index :reference,
-              [:chromosome, :position, :dmel_dsim],
-              :name => 'ref__dmel_dsim'
-
-    add_index :reference,
-              [:chromosome, :position, :dsim_dyak],
-              :name => 'ref__dsim_dyak'
+              [:chromosome, :position],
+              :name => 'ref__chr_pos'
   end
 
   def create_snps
@@ -40,8 +35,20 @@ class CreateAll < ActiveRecord::Migration
     end
 
     add_index :snps,
-              [:chromosome, :position, :sig_count, :synonymous],
-              :name => 'snps__chr_pos_sigcount_synonymous'
+              [:chromosome, :sig_count, :position],
+              :name => 'snps__chr_sigcount_pos'
+  end
+
+  def create_divs
+    create_table :divs do |t|
+      t.integer :chromosome
+      t.integer :position
+      t.boolean :synonymous
+    end
+
+    add_index :divs,
+              [:chromosome, :position],
+              :name => 'divs__chr_pos'
   end
 
   def create_segments
@@ -53,8 +60,6 @@ class CreateAll < ActiveRecord::Migration
       t.string  :type
       t.text    :supp
     end
-
-    # Insectdb::Segment.seed(Insectdb::Config::PATH[:segments])
 
     add_index :segments,
               [:chromosome, :type],
@@ -71,15 +76,12 @@ class CreateAll < ActiveRecord::Migration
       t.string  :strand
       t.integer :start
       t.integer :stop
-      t.text   :supp
+      t.text    :supp
     end
-
-    # Insectdb::Mrna.seed(Insectdb::Config::PATH[:mrnas])
   end
 
   def create_genes
     create_table :genes do |t|
-      t.integer :chromosome
       t.string  :flybase_id
     end
   end
