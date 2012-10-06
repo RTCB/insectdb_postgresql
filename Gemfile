@@ -6,6 +6,10 @@ group :development do
   gem 'mocha'
   gem 'database_cleaner'
   gem 'autotest-standalone'
+  gem 'irbtools'
+  gem 'irbtools-more'
+  gem 'what_methods'
+  gem 'map_by_method'
 end
 
 gem 'pg'

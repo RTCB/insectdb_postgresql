@@ -19,30 +19,43 @@ end
 
 namespace :env do
   task :test do
-    ENV['DATABASE_ENV'] = 'test'
+    ENV['ENV'] = 'test'
+  end
+
+  task :production do
+    ENV['ENV'] = 'production'
+  end
+
+  task :development do
+    ENV['ENV'] = 'development'
   end
 end
 
-namespace :db do
+namespace :i do
 
-  def create_database config
-    options = {:charset => 'utf8', :collation => 'utf8_unicode_ci'}
+  task :dev  => ['env:development', 'db:configure_connection', 'irb']
+  task :test => ['env:test',        'db:configure_connection', 'irb']
+  task :pro  => ['env:production',  'db:configure_connection', 'irb']
 
-    create_db = lambda do |config|
-      ActiveRecord::Base.establish_connection config.merge('database' => nil)
-      ActiveRecord::Base.connection.create_database config['database'], options
-      ActiveRecord::Base.establish_connection config
-    end
-    create_db.call config
+  task :irb do
+    require 'irb'
+    require_relative 'lib/insectdb'
+    ARGV.clear
+    IRB.start
   end
 
+end
+
+
+namespace :db do
+
   task :environment do
-    DATABASE_ENV = ENV['DATABASE_ENV'] || 'production'
+    ENV['DATABASE_ENV'] = ENV['ENV'] || 'production'
     MIGRATIONS_DIR = 'db/migrate'
   end
 
   task :configuration => :environment do
-    @config = YAML.load_file('config/database.yml')[DATABASE_ENV]
+    @config = YAML.load_file('config/database.yml')[ENV['DATABASE_ENV']]
   end
 
   task :configure_connection => :configuration do
@@ -50,20 +63,31 @@ namespace :db do
     ActiveRecord::Base.logger = Logger.new STDOUT if @config['logger']
   end
 
+  task :maintenance_connection => :configuration do
+    @config['maintenance_db'] = @config['database']
+    @config['database'] = 'postgres'
+    ActiveRecord::Base.establish_connection @config
+    ActiveRecord::Base.logger = Logger.new STDOUT if @config['logger']
+  end
+
   desc 'Create the database from config/database.yml for the current DATABASE_ENV'
   task :create => :configure_connection do
-    create_database @config
+    options = {:charset => 'utf8', :collation => 'utf8_unicode_ci'}
+    ActiveRecord::Base.establish_connection(@config.merge('database' => nil))
+    ActiveRecord::Base.connection.create_database(@config['database'], options)
+    ActiveRecord::Base.establish_connection(@config)
   end
 
   # This task seeds the database with sequence and annotation data.
   desc 'Seed database with data'
   task :seed => :configure_connection do
-
+    require_relative 'lib/insectdb'
+    Insectdb::Seed.run
   end
 
   desc 'Drops the database for the current DATABASE_ENV'
-  task :drop => :configure_connection do
-    ActiveRecord::Base.connection.drop_database @config['database']
+  task :drop => :maintenance_connection do
+    ActiveRecord::Base.connection.drop_database @config['maintenance_db']
   end
 
   desc 'Migrate the database (options: VERSION=x, VERBOSE=false).'
@@ -84,14 +108,14 @@ namespace :db do
   end
 
   namespace :test do
-    task :connect => ['env:test', 'db:configure_connection']
+    task :env do
+      ENV['ENV'] = 'test'
+    end
 
-    task :create => ['connect', 'db:create', 'db:migrate']
+    task :connect => ['env', 'db:configure_connection']
 
     desc "Prepare test DB"
-    task :prepare => ['connect', 'db:migrate']
-
-    task :drop => ['env:test', 'db:drop']
+    task :prepare => ['connect', 'db:drop', 'db:create', 'db:migrate']
   end
 
 end
