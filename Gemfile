@@ -10,6 +10,8 @@ group :development do
   gem 'irbtools-more'
   gem 'what_methods'
   gem 'map_by_method'
+  gem 'yard'
+  gem 'yard-tomdoc'
 end
 
 gem 'pg'
