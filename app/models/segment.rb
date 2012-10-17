@@ -33,30 +33,21 @@ class Segment < ActiveRecord::Base
 
   # Public: Remove segments with no mrnas from table.
   #
-  # Returns nothing.
+  # Returns Integer number of records removed.
   def self.clean
+    count = 0
     Insectdb.peach(Segment.all, 20) do |s|
-      if s.mrnas.empty? || s.mrnas.map(&:strand).uniq.size > 1
+      if (s.mrnas.empty?) || (s.mrnas.map(&:strand).uniq.size > 1)
         s.delete
+        count+=1
       end
     end
-    nil
+    count
   end
 
-  # Set cassette field for each alternatively spliced segment.
+  # Public: Return the codon at specified location.
   #
-  # @return [Boolean]
-  def self.set_cassette
-    self.alt.each do |s|
-      left  = self.where("chromosome = ? and stop = ?", s.chromosome, s.start-1).first
-      right = self.where("chromosome = ? and start = ?", s.chromosome, s.stop+1).first
-      s.update_attributes(:cassette => (left.nil? or right.nil?) ? true : false)
-    end
-  end
-
-  # Public: Return the codon at specified location
-  #
-  # Returns The Codon object or nil.
+  # Returns Codon or nil.
   def self.codon_at( chromosome, position )
     seg = Segment.where("chromosome = ? and start <= ? and stop >= ?",
                          chromosome, position, position).first
@@ -70,7 +61,7 @@ class Segment < ActiveRecord::Base
 
   # Public: Return all SNPs residing at this segment.
   #
-  # Returns the ActiveRecord::Relation object.
+  # Returns ActiveRecord::Relation.
   def snps
     Snp.where("chromosome = ? and position between ? and ?",
                chromosome, start, stop)
@@ -78,24 +69,24 @@ class Segment < ActiveRecord::Base
 
   # Public: Return all divs residing at this segment.
   #
-  # Returns the ActiveRecord::Relation object.
+  # Returns ActiveRecord::Relation.
   def divs
     Div.where("chromosome = ? and position between ? and ?",
                chromosome, start, stop)
   end
 
-  # Return the strand of mRNA, as part of which this segment gets translated.
-  # It is assumed that strand is the same for all mRNAs of this segment,
-  # so the strand value is derived from any one of them.
+  # Public: Return the strand of mRNA, as part of which this segment gets translated.
+  #         It is assumed that strand is the same for all mRNAs of this segment,
+  #         so the strand value is derived from any one of them.
   #
-  # @return [String] '+' or '-'
+  # Returns String with + or -.
   def strand
     (mrna = self.mrnas.first) ? mrna.strand : '+'
   end
 
   # Public: Return the reference (i.e. of the dm3) sequence for this segment.
   #
-  # Returns The Insectdb::Sequence object.
+  # Returns Insectdb::Sequence object.
   def ref_seq
     if _ref_seq
       _ref_seq
@@ -108,6 +99,8 @@ class Segment < ActiveRecord::Base
 
   # Public: return the GC content at the third positions of codons
   #         of this segment.
+  #
+  # Returns Float.
   def gc
     s = codons.map { |c| c.nuc_codon[2] }.join
     ((s.count('G')+s.count('C')).to_f/codons.count).round(4)
@@ -122,7 +115,7 @@ class Segment < ActiveRecord::Base
   # snp_aaf_margin - Set the upper margin for SNP aaf ( ancestral allele
   #                  frequency) value. Default is 100%.
   #
-  # Returns the Hash.
+  # Returns Hash.
   def _dn_ds_pn_ps( snp_aaf_margin = 100 )
     s = snps.select { |e| e.aaf < snp_aaf_margin }.map(&:syn?)
     d = divs.map(&:syn?)
@@ -135,7 +128,9 @@ class Segment < ActiveRecord::Base
     }
   end
 
-  # Private
+  # Private: Inner function used for benchmarking production db.
+  #
+  # Returns Integer.
   def _pn
     snps.map(&:syn?).count { |r| r.first == false }
   end
