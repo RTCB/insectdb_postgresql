@@ -104,10 +104,6 @@ class Reference < ActiveRecord::Base
     end
   end
 
-  def self.pl_seed( path )
-    Insectdb::CHROMOSOMES.keys.each{|chr| self.parallel_seed(path, chr)}
-  end
-
   def self.count_nucs_at_poss( chr, poss, nuc, chunk_size = 10000 )
     poss.each_slice(chunk_size).map do |sl|
       self.where("chromosome = ? and
@@ -166,23 +162,44 @@ class Reference < ActiveRecord::Base
     end
   end
 
-  # Returns: A String
-  def self.seq_for( chromosome, start, stop )
-    self.where("chromosome = ? and position between ? and ?",
-                CHROMOSOMES[chromosome], start, stop)
-        .order("position")
-        .map{|r| (r['dsim_dyak'] && r['dmel_sig_count'] >= 150) ? r['dsim'] : 'N'}
-        .join
+  # Public: Return a reference sequence.
+  #
+  # The reference sequence has consesus at each position in all three
+  # species, i.e. D.melanogaster, D.simulans and D.yakuba. Internally this
+  # function takes the array of three nucleotides and executes Array#uniq
+  # on it. If the resulting array has the size > 1, this means position has
+  # no consesus and thus reference sequnce should have 'N' at this position.
+  # Otherwise the first nucleotide is taken as referential.
+  #
+  # chr - The String or The Integer with chromosome id.
+  # start - The Integer with 5' end of segment.
+  # stop - The Integer with 3' end of segment.
+  #
+  # Examples:
+  #
+  #   Insectdb::Reference.ref_seq('2R', 5238, 5245)
+  #     # => #<Insectdb::Sequence @start=5238, @nuc_seq='ACGGGTA'" >
+  #
+  # Returns Insectdb::Sequence object.
+  def self.ref_seq( chr, start, stop, strand )
+    chromosome = (chr.class == String) ? CHROMOSOMES[chr] : chr
+    seq = self.where("chromosome = ? and position between ? and ?",
+                      chromosome, start, stop)
+              .map do |r|
+                col = [r[:dmel], r[:dsim], r[:dyak]]
+                [
+                  r[:position],
+                  col.uniq.size > 1 ? 'N' : col[0]
+                ]
+              end
+
+    Insectdb::Sequence.new(seq, strand)
   end
 
   def self.na_eq?( char_1, char_2 )
     (%W[A C G T].include?(char_1)) &&
     (%W[A C G T].include?(char_2)) &&
     (char_1 == char_2)
-  end
-
-  def anc_allele
-    self.dsim == self.dyak ? self.dsim : 'N'
   end
 end
 end

@@ -18,59 +18,6 @@ module Routines
     end
   end
 
-  def self.divs_per_bin_for( syn, query )
-    data = Insectdb.bind('insectdb/data/dm3_basepairs_2L_out')
-    syn_poss = query.map { |s| s.poss(syn) }.flatten
-    warn "Data loading complete"
-
-    data.map do |poss|
-      iposs = poss.isect(syn_poss)
-      val = iposs.each_slice(10000)
-                 .map { |s| Insectdb::Div.count_at_poss('2L', s) }
-                 .sum
-      iposs.count == 0 ? 0 : (val.to_f/iposs.count)
-    end
-  end
-
-  def self.draw_counts_for( syn, query )
-    data = Insectdb.bind('insectdb/data/dm3_basepairs_2L_out')
-    syn_poss = query.map { |s| s.poss(syn) }.flatten
-
-    res = data.map { |poss| poss.isect(syn_poss).count }
-    res.map { |v| v.to_f/res.sum }
-  end
-
-  # Public: Count divergencies occuring at synonymous or
-  # nonsynonymous positions in all segments passed.
-  #
-  # syn - The String with 'syn' or 'nonsyn'.
-  # query - The Enumerable with all segments to be processed.
-  #
-  # Returns an Array with:
-  # - the total number of synonymous/nonsynonymous positions on this segments as Integer
-  # - the total number of divs occurring at the above-mentioned positions as Integer.
-  # - the number of divs divided by the number of positions as Float.
-  def self.divs_at( syn, query )
-    count =
-      Insectdb.mapp(query, 8) { |s| [Div.count_at_poss(s.chromosome, s.poss(syn)), s.poss(syn).count] }
-              .reduce{ |s,n| s[0]+=s[0]; s[1]+=s[1]; s }
-
-    count + [count[0].to_f/count[1]]
-  end
-
-  def self.stats_for_query( query )
-    syn = query.map{|s| s.poss('syn').count}.reduce(:+)
-    nonsyn = query.map{|s| s.poss('nonsyn').count}.reduce(:+)
-
-    smry =
-      Insectdb.mapp(%W[2L 2R 3L 3R X]) { |c| self.pd(c, query) }
-              .reduce() { |p,n| p.map.with_index { |v,i| v+n[i] } }
-    d = [syn,nonsyn] + smry[1..(-1)]
-
-    puts "%tr"
-    d.each { |v| puts "\s\s%td\n\s\s\s\s#{v}" }
-  end
-
   # Public: Generate a report for a set of segments
   #
   # query - The Enumerable with segments to be processed
@@ -150,23 +97,12 @@ module Routines
   # Execute MacDonald-Kreitman test for segments returned by query
   def self.mk( query, exon_shift, snp_margin )
     Insectdb.reconnect
-    Insectdb::Segment.clear_cache
-    Insectdb::Segment.set_shifts(exon_shift, 0)
-    Insectdb::Snp.set_margin(snp_margin)
 
-    # raw =
-    #   Insectdb.mapp(%W[2L 2R 3L 3R X]) { |c| self.pd(c, query) }
-    #   .reduce() { |p,n| p.map.with_index { |v,i| v+n[i] } }
     raw =
       %W[2L 2R 3L 3R X].map { |c| self.pd(c, query) }
                        .reduce { |p,n| p.map.with_index { |v,i| v+n[i] } }
 
     length_sum = query.map(&:length).reduce(:+)
-
-    poss_counts =
-      raw[0].each_slice(2)
-            .reduce{|s,n| [s[0]+n[0],s[1]+n[1]]}
-            .map(&:count)
 
     norm = poss_counts.reduce(:+).to_f
 
@@ -203,43 +139,10 @@ module Routines
     }
   end
 
-  def self.pd( c, query )
-    timer = nil
+  ########################################
+  ############ Binding stuff #############
+  ########################################
 
-    syn_pos =
-      query.where(:chromosome => c)
-           .tap { |q| warn "\nEntering Segment::pd for #{c} and query of #{q.count} elements"}
-           .tap { warn "Extracting syn positions..."; timer = Time.now}
-           .map { |s| s.poss('syn') }
-           .flatten
-           .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
-
-    nsyn_pos =
-      query.where(:chromosome => c)
-           .tap { warn "Extracting nonsyn positions..."; timer = Time.now}
-           .map { |s| s.poss('nonsyn') }
-           .flatten
-           .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
-
-    ds = Div.count_at_poss(c, syn_pos)
-    dn = Div.count_at_poss(c, nsyn_pos)
-    ps = Snp.count_at_poss(c, syn_pos)
-    pn = Snp.count_at_poss(c, nsyn_pos)
-
-    [[syn_pos, nsyn_pos], ds, dn, ps, pn]
-  end
-
-  def self.divs_with_nucs_for( syn, scope, dmel_nuc, simyak_nuc )
-    div_count = Insectdb.mapp(Segment.send(scope), 8) do |s|
-      positions = s.poss(syn).select { |p| s.ref_seq[p] == simyak_nuc }
-      [Div.count_at_poss_with_nucs(s.chromosome, positions, dmel_nuc, simyak_nuc), positions.count]
-    end
-    result = div_count.inject { |s,n| s[0]+=n[0]; s[1]+=n[1]; s }
-    File.open("insectdb/results/divs_nucs_#{syn}_#{scope}", 'a') do |f|
-      f << ["#{dmel_nuc}-#{simyak_nuc}", result[0], result[1], ((result[0].to_f)/result[1])].join("\t")
-      f << "\n"
-    end
-  end
 
   def self.bind_divs_for_all_nucs( syn, scope )
     bind = Insectdb.bind
@@ -271,6 +174,28 @@ module Routines
         .map.with_index { |a,i| a.divide_by(all_nuc_counts[i]) }
 
     [result, div_nuc_counts, all_nuc_counts]
+  end
+
+  def self.divs_per_bin_for( syn, query )
+    data = Insectdb.bind('insectdb/data/dm3_basepairs_2L_out')
+    syn_poss = query.map { |s| s.poss(syn) }.flatten
+    warn "Data loading complete"
+
+    data.map do |poss|
+      iposs = poss.isect(syn_poss)
+      val = iposs.each_slice(10000)
+                 .map { |s| Insectdb::Div.count_at_poss('2L', s) }
+                 .sum
+      iposs.count == 0 ? 0 : (val.to_f/iposs.count)
+    end
+  end
+
+  def self.draw_counts_for( syn, query )
+    data = Insectdb.bind('insectdb/data/dm3_basepairs_2L_out')
+    syn_poss = query.map { |s| s.poss(syn) }.flatten
+
+    res = data.map { |poss| poss.isect(syn_poss).count }
+    res.map { |v| v.to_f/res.sum }
   end
 
 end

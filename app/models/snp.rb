@@ -1,6 +1,6 @@
 module Insectdb
 class Snp < ActiveRecord::Base
-  serialize :alleles, Hash
+  serialize :alleles
 
   validates :chromosome,
             :presence => true,
@@ -20,6 +20,7 @@ class Snp < ActiveRecord::Base
 
   # Public: Create a new record from an array of nucleotides.
   #
+  # ref - The Hash with reference nucleotides.
   # col - The Array with nucleotides.
   # chr - The String with chromosome.
   # pos - The Integer with position of nucleotide column.
@@ -33,13 +34,18 @@ class Snp < ActiveRecord::Base
   #   )
   #
   # Returns the Insectdb::Snp object.
-  def self.from_col( col, chr, pos )
+  def self.from_col( ref, col, chr, pos )
+    alleles = col.select{ |n| n != 'N'}
+                 .inject(Hash.new(0)) { |mem, var| mem[var]+=1; mem }
+
     self.create!(
       :chromosome => Insectdb::CHROMOSOMES[chr],
       :position   => pos,
       :sig_count  => col.select { |n| n != 'N' }.size,
-      :alleles    => col.select{ |n| n != 'N'}
-                        .inject(Hash.new(0)) { |mem, var| mem[var]+=1; mem })
+      :alleles    => alleles,
+      :aaf        => ((alleles[ref[:dmel]])/
+                      (alleles.values.reduce(:+)).to_f).round
+    )
   end
 
   # Public: When parsing 163 aligned Drosophila melanogaster sequences column
@@ -65,96 +71,22 @@ class Snp < ActiveRecord::Base
     col.select{ |n| %W[A C G T].include?(n) }.uniq.size > 1
   end
 
-  def self.set_margin( margin_val )
-    ENV["SNP_MARGIN"] = margin_val.to_s
-    warn "SNP margin set to #{self.margin}"
-  end
-
-  def self.margin
-    ENV["SNP_MARGIN"].to_i || 85
-  end
-
-  def self.allele_freq_dist_at_poss( chr, poss )
-    self.where( "chromosome = ? and position in (?)",
-                Insectdb::CHROMOSOMES[chr],
-                poss )
-        .select('id, dsim, dyak, snp_alleles, dmel_sig_count')
-        .group_by{ |r| r.anc_allele_freq.to_i }
-        .map { |a| [a[0],a[1].count] }
-        .to_hash
-  end
-
-  def self.at_poss( chr, poss )
-    query =
-      self.where(
-                  "chromosome = ? and position in (?)",
-                   Insectdb::CHROMOSOMES[chr], poss
-                )
-
-    poss.map do |pos|
-      query.find{ |snp| snp.position == pos }
-    end
-  end
-
-  # Mind the non_anc_allele_freq_margin!!!
-  def self.count_at_poss( chr, poss )
-    return 0 if poss.empty?
-
-    # timer = nil
-    # warn "\nEntering Snp::count_at_poss for #{chr} with array of #{poss.size} positions"
-    # .tap { |a| warn "Positions array sliced into #{a.count} pieces" }
-    # .tap { warn "Processing slices"; timer = Time.now }
-    # .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
-    poss.each_slice(100000)
-        .map do |sli|
-          self.where( "chromosome = ? and position in (?)",
-                       Insectdb::CHROMOSOMES[chr], sli
-                    ).to_a.count{ |snp| snp.anc_allele_freq <= self.margin }
-        end
-        .reduce(:+)
-  end
-
-  # Return alleles of SNPs segregating at given positions.
+  # Public: Analyses the synonimity of the mutation.
   #
-  # @param [String] strand '+' or '-'
-  # @param [String] chr
-  # @param [Array] of Integers
-  #
-  # @return [Array] of Arrays with Strings -> [['A','C'],['G','T']
-  def self.alleles_at_poss( strand, chr, poss )
-    self.at_poss(chromosome, poss)
-        .map{|snp| snp ? snp.freq(strand).map(&:first) : nil }
-  end
+  # Returns two values:
+  # * synonimity of mutation - The Boolean or nil.
+  # * synonimity coefficient - The Float or nil.
+  def syn?
+    return [nil, nil] unless codon = Segment.codon_at(chromosome, position)
+    return [nil, nil] unless codon.valid?
 
-  # Get allele frequencies.
-  #
-  # @return [Hash] {'A' => 0.01, 'G' => 0.99 }
-  def freq( strand = '+')
-    strand == '+' ? _freq : _comp_freq
-  end
+    other_snps =
+      Snp.where("chromosome = ? and position in (?)",
+                chromosome,
+                codon.pos_codon.select{ |p| p != position })
+    return [nil, nil] unless other_snps.empty?
 
-  # Return the frequency of the next most abundant allele than the passed one.
-  #
-  # @return [Fixnum]
-  def ofreq( allele, strand )
-    freq(strand)
-      .select{|k| k!=allele}
-      .sort_by{|a| a[1]}[-1][1]
-  end
-
-  def anc_allele_freq
-    ((self.freq[self.anc_allele].to_f)/self.dmel_sig_count)*100
-  end
-
-  def non_anc_allele_freq
-    100-self.anc_allele_freq
-  end
-
-  # Get allele frequencies with complimentary nucleotides.
-  #
-  # @return [Hash] {'T' => 0.01, 'C' => 0.99 }
-  def _comp_freq
-    _freq.map{|f| f[0] = Contig.complement(f[0]);f}.to_hash
+    [codon.pos_syn?(position), nil]
   end
 
 end

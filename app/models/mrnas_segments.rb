@@ -2,7 +2,7 @@ module Insectdb
 class MrnasSegments < ActiveRecord::Base
   self.table_name = 'mrnas_segments'
 
-  validates :mrnas_id,
+  validates :mrna_id,
             :presence => true,
             :numericality => { :only_integer => true }
 

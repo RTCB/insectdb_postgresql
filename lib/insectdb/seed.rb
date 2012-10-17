@@ -1,33 +1,69 @@
 module Insectdb
 module Seed
 
-  def self.run
-    s = lambda do |*args|
-      time = Time.now
-      Insectdb::Seed.send(args[0],
-                          Insectdb::Config::PATHS[args[0]],
-                          *args[1..(-1)])
-      (Time.now - time).round
-    end
+  SEPARATOR = ';'
 
+  def self.seqs
     puts "Seeding Reference, Div and Snp"
     Insectdb::CHROMOSOMES.keys.each do |chr|
       printf "--for chromosome #{chr} "
-      time = s.call(:seqs, chr)
+      time = Time.now
+      self._seqs(Insectdb::Config::PATHS[:seqs], chr)
       puts "took #{time} sec"
     end
+    nil
+  end
 
-    puts "*-----*"
-    printf "Seeding Segments "
-    puts "took #{s.call(:segments)} sec"
+  def self.segments
+    self._exec_and_format(:segments) do |l|
+      Insectdb::Segment.create!(
+        :id         => l[0],
+        :chromosome => Insectdb::CHROMOSOMES[l[1]],
+        :start      => (l[2].to_i - 1),
+        :stop       => (l[3].to_i - 1),
+        :type       => l[4],
+        :length     => (l[3].to_i - 1)-(l[2].to_i - 1)
+      )
+    end
+  end
 
-    puts "*-----*"
-    printf "Seeding Mrnas "
-    puts "took #{s.call(:mrnas)} sec"
+  def self.mrnas
+    self._exec_and_format(:mrnas) do |l|
+      Insectdb::Mrna.create!(
+        :id         => l[0],
+        :chromosome => Insectdb::CHROMOSOMES[l[1]],
+        :strand     => l[2],
+        :start      => l[3],
+        :stop       => l[4]
+      )
+    end
+  end
 
-    puts "*-----*"
-    printf "Seeding Genes "
-    puts "took #{s.call(:genes)} sec"
+  def self.genes
+    self._exec_and_format(:genes) do |l|
+      Insectdb::Gene.create!(
+        :id         => l[0],
+        :flybase_id => l[1]
+      )
+    end
+  end
+
+  def self.mrnas_segments
+    self._exec_and_format(:mrnas_segments) do |l|
+      Insectdb::MrnasSegments.create!(
+        :mrna_id    => l[0].to_i,
+        :segment_id => l[1].to_i
+      )
+    end
+  end
+
+  def self.genes_mrnas
+    self._exec_and_format(:genes_mrnas) do |l|
+      Insectdb::GenesMrnas.create!(
+        :mrna_id => l[0].to_i,
+        :gene_id => l[1].to_i
+      )
+    end
   end
 
   def self.reference_enums_for( chr, path )
@@ -51,15 +87,15 @@ module Seed
 
     case check
     when [true, true], [false, false] then nil
-    when [true, false] then Snp.from_col(dmel_col, chr, pos)
-    when [false, true] then Insectdb::Div.from_hash(chr, pos)
+    when [true, false] then Snp.from_col(ref, dmel_col, chr, pos)
+    when [false, true] then Insectdb::Div.from_hash(ref, chr, pos)
     end
 
     Insectdb::Reference.from_hash(ref, chr, pos)
   end
 
-  # Seed Reference, Snp and Div tables for one chromosome
-  def self.seqs( path, chr )
+  # Private: Seed Reference, Snp and Div tables for one chromosome
+  def self._seqs( path, chr )
     ref_enums = reference_enums_for(chr, path)
 
     snp_enums =
@@ -69,7 +105,7 @@ module Seed
     step = (ENV['ENV'] == 'test' ? 5 : 200000)
     map = (0..(ref_enums[:dmel].length/step)).map{ |v| v * step }
 
-    Parallel.each(map, :in_processes => (ENV['ENV'] == 'test' ? 0 : 8)) do |ind|
+    Parallel.each(map, :in_processes => (ENV['ENV'] == 'test' ? 0 : 10)) do |ind|
       ActiveRecord::Base.connection.reconnect!
 
       dmel_en = ref_enums[:dmel][ind, step]
@@ -92,72 +128,89 @@ module Seed
     end
   end
 
-  def self.segments( path )
-    File.open(File.join(path), 'r') do |f|
-      Insectdb.peach(f.lines.to_a, 16) do |l|
-        l = l.chomp.split
-        Insectdb::Segment.create!(
-          :id         => l[0],
-          :chromosome => Insectdb::CHROMOSOMES[l[1]],
-          :start      => (l[2].to_i - 1),
-          :stop       => (l[3].to_i - 1),
-          :type       => l[4],
-          :length     => (l[3].to_i - 1)-(l[2].to_i - 1)
-        )
-      end
-    end
-    puts 'Segments table successfully uploaded'
-  end
-
-  def self.mrnas( path )
+  def self._exec_and_catch_errors( path, &block )
+    errors = []
     File.open(File.join(path),'r') do |f|
-      f.lines.each do |l|
-        l = l.chomp.split
-        Insectdb::Mrna.create!(
-          :id         => l[0],
-          :chromosome => Insectdb::CHROMOSOMES[l[1]],
-          :strand     => l[2],
-          :start      => l[3],
-          :stop       => l[4]
-        )
+      f.lines.each_with_index do |l, ind|
+        begin
+          l = l.chomp.split(SEPARATOR)
+          block.call(l)
+        rescue => e
+          errors.push({
+            :line => ind + 1,
+            :content => l.join(" | "),
+            :error => e
+          })
+        end
       end
+    end
+    errors
+  end
+
+  def self._exec_and_format( sym, &block )
+    printf "Seeding #{sym.to_s.capitalize}... "
+
+    start = Time.now
+    errors = self._exec_and_catch_errors(Insectdb::Config::PATHS[sym], &block)
+    time = (Time.now - start).round
+
+    puts "took #{time} sec"
+    puts "Errors: #{errors.size}"
+    puts ''
+    errors.each do |e|
+      puts "When processing line #{e[:line]}:"
+      puts "-> #{e[:content]}"
+      puts "Reason:"
+      puts "-> #{e[:error].inspect}"
+      puts ""
     end
   end
 
-  def self.genes( path )
-    File.open(File.join(path),'r') do |f|
-      f.lines.each do |l|
-        l = l.chomp.split
-        Insectdb::Gene.create!(
-          :id          => l[0],
-          'flybase_id' => l[1]
-        )
-      end
-    end
-  end
+  # TODO: copy-paste from Segment, needs fixing
+  # Public: Set bind_mean field for all coding segments.
+  #
+  # The value is counted only for position that happen to be 'A' or 'T'
+  #
+  # Returns: True or message "Looks like finished"
+  def self.seed_bind_mean( path )
+    segs = Insectdb::Segment
+             .coding
+             .where(:chromosome => '2L')
+             .order(:start)
 
-  def self.mrnas_segments( path )
-    File.open(File.join(path,'mrnas_segments'),'r') do |f|
-      f.lines.each do |l|
-        l = l.chomp.split
-        Insectdb::MrnasSegments.create!(
-          'mrna_id'    => l[0].to_i,
-          'segment_id' => l[1].to_i
-        )
-      end
-    end
-  end
+    ends = segs.map{|s| [s.start, s.stop]}
 
-  def self.genes_mrnas( path )
-    File.open(File.join(path,'genes_mrnas'),'r') do |f|
-      f.lines.each do |l|
-        l = l.chomp.split
-        Insectdb::MrnasSegments.create!(
-          'mrna_id' => l[0].to_i,
-          'gene_id' => l[1].to_i
-        )
+    bind =
+      File.open(path)
+        .lines
+        .map{|li| l=li.chomp.split(","); l[0]=l[0].to_i; l[1]=l[1].to_f; l }
+        .sort_by(&:first)
+        .each
+
+    prev_el = nil
+    pos_hold = []
+
+    ends.each_with_index do |iends, ind|
+      el = prev_el || bind.next
+      if el.first < iends.first
+        prev_el = nil
+        redo
+      elsif (el.first >= iends.first) && (el.first <= iends.last)
+        pos_hold << el
+        prev_el = nil
+        redo
+      else
+        prev_el = el
+        next if pos_hold.empty?
+        pos_hold = pos_hold.select{ |b| %W[A T].include?(segs[ind].ref_seq[b.first]) }
+        segs[ind].update_attributes('bind_mean' => pos_hold.map(&:last).mean)
+        pos_hold = []
       end
     end
+
+    true
+  rescue StopIteration
+    warn 'Looks like finished'
   end
 
 end

@@ -1,7 +1,7 @@
 require_relative 'insectdb/version'
 require_relative '../config/config'
 require_relative 'insectdb/seq_enum'
-require_relative 'insectdb/contig'
+require_relative 'insectdb/sequence'
 require_relative 'insectdb/codon'
 require_relative 'insectdb/common'
 require_relative 'insectdb/segment_gain'
@@ -12,12 +12,13 @@ require '/home/anzaika/loc_projects/my_ruby_extensions/lib/my_ruby_extensions'
 require 'bundler/setup'
 require 'active_record'
 require 'parallel'
-require 'json'
 require 'matrix'
+require 'zlib'
+require 'fileutils'
 
-# ActiveRecord::Base.establish_connection(
-#   Insectdb::Config.database
-# )
+if ENV['ENV'] == 'test'
+  ActiveRecord::Base.establish_connection(Insectdb::Config.database(ENV['ENV']))
+end
 
 require_relative '../app/models/mrna'
 require_relative '../app/models/gene'
@@ -28,5 +29,3 @@ require_relative '../app/models/snp'
 require_relative '../app/models/mrnas_segments'
 require_relative '../app/models/genes_mrnas'
 
-require 'zlib'
-require 'fileutils'

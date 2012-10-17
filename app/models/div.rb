@@ -1,6 +1,8 @@
 module Insectdb
 class Div < ActiveRecord::Base
 
+  serialize :alleles
+
   validates :chromosome,
             :presence => true,
             :numericality => { :only_integer => true },
@@ -12,18 +14,22 @@ class Div < ActiveRecord::Base
 
   # Public: Create a new record from coordinates on chromosome.
   #
+  # ref - The Hash with nucleotides from three organisms.
   # chr - The String with chromosome name.
   # pos - The Integere with position on chromosome.
   #
   # Examples:
   #
-  #   Insectdb::Div.from_hash('2R', 765986)
+  #   Insectdb::Div.from_hash( {:dmel => 'A', :dsim => 'G', :dyak => 'T',}
+  #                            '2R',
+  #                            765986 )
   #
   # Returns The Insectdb::Div object.
-  def self.from_hash( chr, pos )
+  def self.from_hash( ref, chr, pos )
     self.create!(
       :chromosome => Insectdb::CHROMOSOMES[chr],
-      :position => pos
+      :position   => pos,
+      :alleles    => ref
     )
   end
 
@@ -63,50 +69,22 @@ class Div < ActiveRecord::Base
     !hash.values.include?('N')
   end
 
-  def self.at_poss( chr, poss )
-    query =
-      self.where(
-                  "chromosome = ?  and
-                   position in (?) and
-                   dsim_dyak=true  and
-                   dmel_dsim=false and
-                   dmel != 'N'",
-                   Insectdb::CHROMOSOMES[chr], poss
-                )
+  # Public: Analyses the synonimity of the mutation.
+  #
+  # Returns two values:
+  # * synonimity of mutation - The Boolean or nil.
+  # * synonimity coefficient - The Float or nil.
+  def syn?
+    return [nil, nil] unless codon = Segment.codon_at(chromosome, position)
+    return [nil, nil] unless codon.valid?
 
-    poss.map { |pos| query.find { |div| div.position == pos }}
-  end
+    other_divs =
+      Div.where("chromosome = ? and position in (?)",
+                 chromosome,
+                 codon.pos_codon.select{ |p| p != position })
+    return [nil, nil] unless other_divs.empty?
 
-  def self.count_at_poss( chr, poss )
-    return 0 if poss.empty?
-    # timer = nil
-    # warn "\nEntering Div::count_at_poss for #{chr} with array of #{poss.size} positions"
-    # .tap { |a| warn "Positions array sliced into #{a.count} pieces" }
-    # .tap { warn "Processing slices"; timer = Time.now }
-    # .tap { warn "Took #{(Time.now - timer).round(4)} seconds"}
-    poss.each_slice(100000)
-        .map { |sli| self.where( "chromosome = ? and position in (?) and dmel_dsim = false and dmel != 'N'", Insectdb::CHROMOSOMES[chr], sli).count }
-        .reduce(:+)
-  end
-
-  def self.count_at_poss_with_nucs( chr, poss, dmel_nuc, simyak_nuc, chunk_size = 10000 )
-    poss.each_slice(chunk_size).map do |sl|
-      Div.where(
-        "chromosome = ? and
-         position in (?) and
-         dmel = ? and dsim = ?",
-         Insectdb::CHROMOSOMES[chr], sl, dmel_nuc, simyak_nuc
-      ).count
-    end.reduce(:+)
-  end
-
-  def self.alleles_at_poss( strand, chr, poss )
-    self.at_poss(chromosome,poss)
-        .map { |div| div ? div.alleles(strand) : nil }
-  end
-
-  def alleles( strand = '+' )
-    [dmel, dsim].map { |n| strand == '+' ? n : Contig.complement(n) }
+    [codon.pos_syn?(position), nil]
   end
 
 end

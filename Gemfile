@@ -17,4 +17,4 @@ gem 'activerecord'
 gem 'bio'
 gem 'parallel'
 
-gem 'my_ruby_extensions', :path => "/home/anzaika/loc_projects/my_ruby_extensions"
+# gem 'my_ruby_extensions', :path => "/home/anzaika/loc_projects/my_ruby_extensions"

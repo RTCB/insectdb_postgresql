@@ -6,7 +6,7 @@ class GenesMrnas < ActiveRecord::Base
             :presence => true,
             :numericality => { :only_integer => true }
 
-  validates :mrnas_id,
+  validates :mrna_id,
             :presence => true,
             :numericality => { :only_integer => true }
 end

@@ -1,0 +1,20 @@
+defaults: &defaults
+  adapter: postgresql
+  encoding: utf8
+  reconnect: true
+  pool: 20
+  username:
+  password:
+  hostname: localhost
+
+development:
+  database: insectdb_dev
+  <<: *defaults
+
+test:
+  database: insectdb_test
+  <<: *defaults
+
+production:
+  database: insectdb
+  <<: *defaults

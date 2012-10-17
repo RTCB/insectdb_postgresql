@@ -2,6 +2,11 @@ require 'yaml'
 require 'logger'
 require 'active_record'
 
+def camel_case( string )
+  return string if (string !~ /_/) && (string =~ /[A-Z]+.*/)
+  string.split('_').map{|e| e.capitalize}.join
+end
+
 desc "Start yard doc server"
 task :yard do
   `rm -rf .yardoc && yard server --reload`
@@ -17,6 +22,10 @@ task :pull do
   `git pull origin`
 end
 
+task :load do
+  require_relative 'lib/insectdb'
+end
+
 namespace :env do
   task :test do
     ENV['ENV'] = 'test'
@@ -26,16 +35,21 @@ namespace :env do
     ENV['ENV'] = 'production'
   end
 
-  task :development do
+  task :dev do
     ENV['ENV'] = 'development'
   end
 end
 
-namespace :i do
+task :test => ['env:test', 'db:configure_connection'] do
+  require 'autotest'
+  Autotest.parse_options()
+  Autotest.runner.run
+end
 
-  task :dev  => ['env:development', 'db:configure_connection', 'irb']
-  task :test => ['env:test',        'db:configure_connection', 'irb']
-  task :pro  => ['env:production',  'db:configure_connection', 'irb']
+namespace :i do
+  task :dev   => ['env:dev', 'db:configure_connection', 'irb']
+  task :pro   => ['env:production',  'db:configure_connection', 'irb']
+  task :test  => ['env:test',  'db:configure_connection', 'irb']
 
   task :irb do
     require 'irb'
@@ -43,9 +57,7 @@ namespace :i do
     ARGV.clear
     IRB.start
   end
-
 end
-
 
 namespace :db do
 
@@ -78,16 +90,17 @@ namespace :db do
     ActiveRecord::Base.establish_connection(@config)
   end
 
-  # This task seeds the database with sequence and annotation data.
-  desc 'Seed database with data'
-  task :seed => :configure_connection do
-    require_relative 'lib/insectdb'
-    Insectdb::Seed.run
-  end
-
   desc 'Drops the database for the current DATABASE_ENV'
   task :drop => :maintenance_connection do
     ActiveRecord::Base.connection.drop_database @config['maintenance_db']
+  end
+
+  desc 'Create new migration'
+  task :create_migration, :name do |t, args|
+    filename = Time.now.strftime("%Y%m%d%H%M%S") + "_" + args[:name]
+    File.open("db/migrate/#{filename}.rb",'w') do |f|
+      f << "class #{camel_case(args[:name])} < ActiveRecord::Migration\nend"
+    end
   end
 
   desc 'Migrate the database (options: VERSION=x, VERBOSE=false).'
@@ -97,8 +110,9 @@ namespace :db do
   end
 
   desc 'Rolls the schema back to the previous version (specify steps w/ STEP=n).'
-  task :rollback => :configure_connection do
-    step = ENV['STEP'] ? ENV['STEP'].to_i : 1
+  task :rollback, [:steps] => :configure_connection do |t, args|
+    args.with_defaults(:steps => 1)
+    step = args[:steps].to_i
     ActiveRecord::Migrator.rollback MIGRATIONS_DIR, step
   end
 
@@ -107,15 +121,73 @@ namespace :db do
     puts "Current version: #{ActiveRecord::Migrator.current_version}"
   end
 
-  namespace :test do
-    task :env do
-      ENV['ENV'] = 'test'
+  namespace :seed do
+
+    desc "Seed development database"
+
+    task :seqs => ['load', 'configure_connection'] do
+      Insectdb::Seed.seqs
     end
 
-    task :connect => ['env', 'db:configure_connection']
+    task :segments => ['load', 'configure_connection'] do
+      Insectdb::Seed.segments
+    end
 
-    desc "Prepare test DB"
-    task :prepare => ['connect', 'db:drop', 'db:create', 'db:migrate']
+    task :mrnas => ['load', 'configure_connection'] do
+      Insectdb::Seed.mrnas
+    end
+
+    task :genes => ['load', 'configure_connection'] do
+      Insectdb::Seed.genes
+    end
+
+    task :mrnas_segments => ['load', 'configure_connection'] do
+      Insectdb::Seed.mrnas_segments
+    end
+
+    task :genes_mrnas => ['load', 'configure_connection'] do
+      Insectdb::Seed.genes_mrnas
+    end
+
+    task :clean_segments => ['load', 'configure_connection'] do
+      Insectdb::Segment.clean
+    end
+
+    task :clean_mrnas => ['load', 'configure_connection'] do
+      Insectdb::Mrna.clean
+    end
+
+    task :set_ref_seqs => ['load', 'configure_connection'] do
+      Insectdb::Mrna.set_ref_seq
+    end
+
+    task :all => ['load',
+                  'seqs',
+                  'segments',
+                  'mrnas',
+                  'genes',
+                  'mrnas_segments',
+                  'genes_mrnas',
+                  'clean_segments',
+                  'clean_mrnas',
+                  'set_ref_seqs'
+    ]
+
   end
 
+  namespace :test do
+    desc "Drop test DB"
+    task :drop => ['env:test', 'db:drop']
+
+    desc "Create & Migrate test DB"
+    task :prepare => ['env:test', 'db:create', 'db:migrate']
+  end
+
+  namespace :dev do
+    desc "Drop dev DB"
+    task :drop => ['env:dev', 'db:drop']
+
+    desc "Create & Migrate dev DB"
+    task :prepare => ['env:dev', 'db:create', 'db:migrate']
+  end
 end

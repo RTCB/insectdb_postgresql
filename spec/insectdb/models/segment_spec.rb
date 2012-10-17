@@ -1,8 +1,64 @@
 require 'spec_helper'
 
 describe Insectdb::Segment do
-  describe '::seed' do
-    it "loads data from text dump into the table" do
-    end
+before(:each) do
+    Insectdb::Reference.create!(
+      :dmel       => 'G',
+      :dsim       => 'G',
+      :dyak       => 'G',
+      :chromosome => 0,
+      :position   => 1
+      )
+    Insectdb::Reference.create!(
+      :dmel       => 'T',
+      :dsim       => 'T',
+      :dyak       => 'T',
+      :chromosome => 0,
+      :position   => 2
+      )
+    Insectdb::Reference.create!(
+      :dmel       => 'T',
+      :dsim       => 'G',
+      :dyak       => 'T',
+      :chromosome => 0,
+      :position   => 3
+      )
+    Insectdb::Segment.create!(
+      :id         => 1,
+      :chromosome => 0,
+      :start      => 1,
+      :stop       => 3,
+      :length     => 3,
+      :type       => 'coding(const)'
+      )
+    Insectdb::Mrna.create!(
+      :id         => 1,
+      :chromosome => 0,
+      :strand     => '+',
+      :start      => 1,
+      :stop       => 3
+      )
+    Insectdb::MrnasSegments.create!(
+      :segment_id => 1,
+      :mrna_id => 1
+    )
+end
+
+describe "#ref_seq" do
+  it "should return the correct Contig object" do
+    Insectdb::Segment.first
+                     .ref_seq
+                     .seq_with_coords
+                     .should == [[1,'G'], [2,'T'], [3, 'N']]
   end
+end
+
+describe "::codon_at" do
+  it "should return the correct Codon" do
+    warn "Reference" + Insectdb::Reference.count.to_s
+    warn "Mrnas: " + Insectdb::Segment.first.mrnas.inspect
+    Insectdb::Segment.codon_at(0, 2).nuc_seq.join.should == "GTN"
+  end
+end
+
 end

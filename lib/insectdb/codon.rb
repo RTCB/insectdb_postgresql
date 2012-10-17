@@ -1,6 +1,5 @@
 module Insectdb
 class Codon
-  attr_reader :nuc_codon, :mut_codon, :count
 
   # If a site mutation in codon always results in
   # amino-acid change then site is marked as 'n'.
@@ -75,23 +74,62 @@ class Codon
     'CCT' => 'nns'
   }
 
-  # Public: Initialize a new instance of Codon
+  # Public: Initialize a new instance.
   #
+  # codon - The Array of this structure: [[1,'A'],[2,'G'],[3,'C']]
+  #
+  # Returns The Codon object.
   def initialize( codon )
-    case codon.first
-    when String
-      @nuc_codon = codon
-    when Array
-      @nuc_codon = codon.map(&:last)
-      @pos_codon = codon.map(&:first)
-    else
-      warn "Can't create codon from: #{codon.inspect}"
-      raise
+    if (codon.class != Array) ||
+       (codon.size != 3)
+      raise ArgumentError,
+            "Codon must have three bases, but this was passed: #{codon}"
     end
+    @codon = codon
+  end
+
+  def nuc_codon
+    @codon.map(&:last)
+  end
+
+  def pos_codon
+    @codon.map(&:first)
   end
 
   def translate
-    Bio::Sequence::NA.new(@nuc_codon.join).translate
+    Bio::Sequence::NA.new(nuc_codon.join).translate
+  end
+
+  def valid?
+    !nuc_codon.include?('N')
+  end
+
+  # Public: Does this codon have this position?
+  #
+  # pos - The Integer with position.
+  #
+  # Examples:
+  #
+  #   Insectdb::Codon.new([[1,'A'],[2,'B'],[3,'C']]).has_pos?(2) #=> true
+  #   Insectdb::Codon.new([[1,'A'],[2,'B'],[3,'C']]).has_pos?(7) #=> false
+  #
+  # Returns The Boolean.
+  def has_pos?( pos )
+    pos_codon.include?(pos)
+  end
+
+  def pos_syn?( pos )
+    cod = SITE_SYNONYMITY[nuc_codon.join]
+    return nil unless cod
+
+    case  pos_codon.zip(cod.split("")).find{ |p| p.first == pos }.last
+    when 'u'
+      nil
+    when 's'
+      true
+    when 'n'
+      false
+    end
   end
 
   # Check whether two codons code for the same aa
@@ -120,17 +158,17 @@ class Codon
   # @param [Array] codon
   # @return [Array] array of Integers
   def poss( syn )
-    cod = SITE_SYNONYMITY[@nuc_codon.join]
+    cod = SITE_SYNONYMITY[nuc_codon.join]
     return [] unless cod
 
-    @pos_codon
+    pos_codon
       .zip(cod.split(""))
       .select{|p| p.last == (syn=='syn' ? 's' : 'n')}
       .map(&:first)
   end
 
   def include?( nuc )
-    @nuc_codon.include?(nuc)
+    nuc_codon.include?(nuc)
   end
 
 end

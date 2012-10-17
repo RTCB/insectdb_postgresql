@@ -3,7 +3,7 @@
 Gemfile.lock
 pkg/*
 config/database.yml
-db/seed/**
+db/seed/
 tags
 data/**
 .yardoc

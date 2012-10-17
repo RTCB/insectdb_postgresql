@@ -77,7 +77,7 @@ describe "::seqs" do
     cf("/var/tmp/drosophila_yakuba/droYak2_2L.fa.gz",
             ">droYak\nGAGGTT")
 
-    Insectdb::Seed.seqs('/var/tmp', '2L')
+    Insectdb::Seed._seqs('/var/tmp', '2L')
     Insectdb::Snp.first.position.should == 2
     Insectdb::Div.first.position.should == 4
     Insectdb::Reference.first.dsim.should == 'T'

@@ -16,17 +16,23 @@ module Insectdb
 
   # Public: Execute map in parallel processes on array.
   def self.mapp( array, processes = 8, &block )
-    Parallel.map(array, :in_processes => processes) do |el|
-      ActiveRecord::Base.connection.reconnect!
-      block.call(el)
-    end
+    res =
+      Parallel.map(array, :in_processes => processes) do |el|
+        ActiveRecord::Base.connection.reconnect!
+        block.call(el)
+      end
+    self.reconnect
+    return res
   end
 
   def self.peach( array, processes = 8, &block )
-    Parallel.each(array, :in_processes => processes) do |el|
-      ActiveRecord::Base.connection.reconnect!
-      block.call(el)
-    end
+    res =
+      Parallel.each(array, :in_processes => processes) do |el|
+        ActiveRecord::Base.connection.reconnect!
+        block.call(el)
+      end
+    self.reconnect
+    return res
   end
 
   def self.bench(&block)

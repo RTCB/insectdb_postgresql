@@ -22,8 +22,8 @@ module Config
           File.dirname(__FILE__),  file)))
   end
 
-  def self.database
-    self.open('database.yml')[ENV['DATABASE_ENV'] || 'test']
+  def self.database(env)
+    self.open('database.yml')[env]
   end
 
   def self.path_to( sym )
