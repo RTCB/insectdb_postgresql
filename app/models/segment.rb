@@ -31,18 +31,13 @@ class Segment < ActiveRecord::Base
             :presence => true
 
 
-  # Public: Remove segments with no mrnas from table.
+  # Public: Remove all noncoding segments.
   #
   # Returns Integer number of records removed.
   def self.clean
-    count = 0
-    Insectdb.peach(Segment.all, 20) do |s|
-      if (s.mrnas.empty?) || (s.mrnas.map(&:strand).uniq.size > 1)
+    Insectdb.peach(Segment.where("type not in ('coding(alt)', 'coding(const)')"), 20) do |s|
         s.delete
-        count+=1
-      end
-    end
-    count
+    end.length
   end
 
   # Public: Return the codon at specified location.
