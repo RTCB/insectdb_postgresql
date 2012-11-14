@@ -98,7 +98,7 @@ class Segment < ActiveRecord::Base
     mrna.codon_at(position)
   end
 
-  # Public: Return all SNPs residing at this segment.
+  # Public: Return all SNPs for this segment.
   #
   # Returns ActiveRecord::Relation.
   def snps
@@ -106,7 +106,7 @@ class Segment < ActiveRecord::Base
                chromosome, start, stop)
   end
 
-  # Public: Return all divs residing at this segment.
+  # Public: Return all divs for this segment.
   #
   # Returns ActiveRecord::Relation.
   def divs
