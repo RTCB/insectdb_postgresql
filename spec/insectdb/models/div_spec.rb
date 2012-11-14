@@ -4,7 +4,11 @@ describe Insectdb::Div do
 
 describe "::from_hash" do
   it "should create a correct record in database" do
-    Insectdb::Div.from_hash('2R', 1234)
+    Insectdb::Div.from_hash(
+      {:dmel => 'A', :dsim => 'G', :dyak => 'T' },
+      '2R',
+      '1234'
+    )
     r = Insectdb::Div.first
     r.chromosome.should == 0
     r.position.should == 1234

@@ -30,14 +30,58 @@ class Segment < ActiveRecord::Base
   validates :type,
             :presence => true
 
+  # Public: A wrapper around Segment::create! to make it create a record
+  #         with custom id.
+  #
+  # params - The Hash data for new Segment record:
+  #          :id         - The Integer segment_id in insectdb4core.
+  #          :chromosome - The String chromosome name, e.g. '2R'.
+  #          :start      - The Integer position of the first nucleotide of
+  #                        segment on the chromosome.
+  #          :stop       - The Integer position of the last nucleotide of
+  #                        segment on the chromosome.
+  #          :type       - The String segment type as it comes from
+  #                        insectdb4core.
+  #          :_ref_seq   - The Insectdb::Sequnce reference sequence can be
+  #                        appended, mainly for testing
+  #                        purposes.
+  #
+  # Returns The Segment.
+  def self.___create!( params )
+    Insectdb::Segment.create! do |r|
+      r.id         = params[:id].to_i
+      r.chromosome = Insectdb::CHROMOSOMES[params[:chromosome]]
+      r.start      = params[:start].to_i
+      r.stop       = params[:stop].to_i
+      r.type       = params[:type]
+      r.length     = params[:stop].to_i - params[:start].to_i
+      r._ref_seq   = params[:_ref_seq] if params[:_ref_seq]
+    end
+  end
 
   # Public: Remove all noncoding segments.
   #
   # Returns Integer number of records removed.
   def self.clean
-    Insectdb.peach(Segment.where("type not in ('coding(alt)', 'coding(const)')"), 20) do |s|
-        s.delete
-    end.length
+    count_bfr = Insectdb::Segment.count
+    puts "Rows at beginning: #{count_bfr}"
+
+    printf "Removing non-coding segments..."
+    query = Segment.where("type not in ('coding(alt)', 'coding(const)')")
+    count1 = Insectdb.peach(query){ |s| s.delete }.length
+    puts " #{count1} rows"
+
+    printf "Removing segments with no mrnas..."
+    query = Segment.select{ |s| s.mrnas.empty? }
+    count2 = Insectdb.peach(query){ |s| s.delete }.length
+    puts " #{count2} rows"
+
+    count_aftr = Insectdb::Segment.count
+    sum = count1 + count2
+    percent = ((sum.to_f/count_bfr)*100).round(1)
+
+    puts "Done, removed #{sum} rows, which is #{percent}%"
+    puts "Rows now: #{count_aftr}"
   end
 
   # Public: Return the codon at specified location.
@@ -126,8 +170,12 @@ class Segment < ActiveRecord::Base
   # Private: Inner function used for benchmarking production db.
   #
   # Returns Integer.
-  def _pn
-    snps.map(&:syn?).count { |r| r.first == false }
+  def _ps
+    snps.map(&:syn?).count { |r| r.first == true }
+  end
+
+  def _dn
+    divs.map(&:syn?).count { |r| r.first == false }
   end
 
 end

@@ -3,27 +3,27 @@ require 'spec_helper'
 describe Insectdb::Mrna do
 describe "#ref_seq" do
   it "should return a valid ref_seq" do
-    Insectdb::Segment.create!(
+    Insectdb::Segment.___create!(
       :id => 1,
-      :chromosome => '0',
+      :chromosome => '2R',
       :start => 1,
       :stop => 2,
       :length => 2,
       :type => 'coding(const)',
-      :_ref_seq => Insectdb::Sequence.new([[1,'A'],[2,'T']])
+      :_ref_seq => Insectdb::Sequence.new([[1,'A'],[2,'T']], '+')
     )
-    Insectdb::Segment.create!(
+    Insectdb::Segment.___create!(
       :id => 2,
-      :chromosome => '0',
+      :chromosome => '2R',
       :start => 5,
       :stop => 7,
       :length => 3,
       :type => 'coding(const)',
-      :_ref_seq => Insectdb::Sequence.new([[5,'G'],[6,'G'],[7,'C']])
+      :_ref_seq => Insectdb::Sequence.new([[5,'G'],[6,'G'],[7,'C']], '+')
     )
-    Insectdb::Mrna.create!(
+    Insectdb::Mrna.___create!(
       :id => 1,
-      :chromosome => 0,
+      :chromosome => '2R',
       :strand => '+',
       :start => 1,
       :stop => 7
@@ -39,7 +39,7 @@ describe "#ref_seq" do
 
     Insectdb::Mrna.first
                   .ref_seq
-                  .seq_with_coords
+                  .seq
                   .should == [[1,'A'],[2,'T'],[5,'G'],[6,'G'],[7,'C']]
   end
 end

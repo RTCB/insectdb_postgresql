@@ -22,6 +22,16 @@ class Mrna < ActiveRecord::Base
             :presence => true,
             :inclusion => { :in => %W[ + - ] }
 
+  def self.___create!( params )
+    Insectdb::Mrna.create! do |r|
+      r.id         = params[:id].to_i
+      r.chromosome = Insectdb::CHROMOSOMES[params[:chromosome]]
+      r.strand     = params[:strand]
+      r.start      = params[:start].to_i
+      r.stop       = params[:stop].to_i
+    end
+  end
+
   def self.clean
     Insectdb.peach(Mrna.all, 20) do |m|
       m.delete if m.segments.empty?

@@ -1,21 +1,16 @@
 require 'spec_helper'
 
-
 describe Insectdb::Seed do
 
-
+# A helper function that produces a gzipped file with passed content
 def cf( name, content )
   FileUtils.mkdir_p(File.dirname(name))
   Zlib::GzipWriter.open(name){ |gz| gz.write(content) }
 end
 
-describe "::reference_enums" do
+describe "::reference_enums_for" do
   it "returns a hash with SeqEnum objects for dmel,
       dsim and dyak reference genomes" do
-    # cf = lambda do |name, content|
-    #   FileUtils.mkdir_p(File.dirname(name))
-    #   Zlib::GzipWriter.open(name){ |gz| gz.write(content) }
-    # end
 
     cf("/var/tmp/drosophila_melanogaster/dm3_2R.fa.gz",
             ">dm3\nAAA\nCCC")

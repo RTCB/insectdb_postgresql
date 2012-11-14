@@ -74,6 +74,8 @@ class Codon
     'CCT' => 'nns'
   }
 
+  attr_reader :codon
+
   # Public: Initialize a new instance.
   #
   # codon - The Array of this structure: [[1,'A'],[2,'G'],[3,'C']]

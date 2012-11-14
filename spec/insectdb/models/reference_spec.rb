@@ -16,7 +16,7 @@ describe "#seq_for" do
     :chromosome => 0,
     :position => 124
   )
-  contig = Insectdb::Reference.ref_seq('2R', 123, 124)
-  # contig.nuc_seq.to_s.should == "AT"
+  contig = Insectdb::Reference.ref_seq('2R', 123, 124, '+')
+  # contig.nuc_seq.join.should == "AT"
 end
 end

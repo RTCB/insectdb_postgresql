@@ -95,47 +95,26 @@ module Routines
   end
 
   # Execute MacDonald-Kreitman test for segments returned by query
-  def self.mk( query, exon_shift, snp_margin )
-    Insectdb.reconnect
+  def self.mk( query, snp_margin )
 
-    raw =
-      %W[2L 2R 3L 3R X].map { |c| self.pd(c, query) }
-                       .reduce { |p,n| p.map.with_index { |v,i| v+n[i] } }
+    result =
+      Insectdb.mapp(query, 12) do |s|
+        s._dn_ds_pn_ps(snp_margin)
+      end
 
-    length_sum = query.map(&:length).reduce(:+)
+    dn = result.map{ |h| h[:dn] }.reduce(:+)
+    ds = result.map{ |h| h[:ds] }.reduce(:+)
+    pn = result.map{ |h| h[:pn] }.reduce(:+)
+    ps = result.map{ |h| h[:ps] }.reduce(:+)
 
-    norm = poss_counts.reduce(:+).to_f
-
-    ds_norm = raw[1]/norm
-    dn_norm = raw[2]/norm
-    ps_norm = raw[3]/norm
-    pn_norm = raw[4]/norm
-
-    ds_per_syn_poss    = (raw[1]/poss_counts[0].to_f)*100
-    dn_per_nonsyn_poss = (raw[2]/poss_counts[1].to_f)*100
-    ps_per_syn_poss    = (raw[3]/poss_counts[0].to_f)*100
-    pn_per_nonsyn_poss = (raw[4]/poss_counts[1].to_f)*100
-
-    alpha = 1-((ds_norm*pn_norm)/(dn_norm*ps_norm))
+    alpha = 1-((ds*pn)/(dn*ps))
 
     {
-      :alphaNorm => alpha.round(4),
-      :dsNorm => ds_norm.round(4),
-      :dnNorm => dn_norm.round(4),
-      :psNorm => ps_norm.round(4),
-      :pnNorm => pn_norm.round(4),
-      :ds => raw[1],
-      :dn => raw[2],
-      :ps => raw[3],
-      :pn => raw[4],
-      :dsPerCent => ds_per_syn_poss.round(4),
-      :dnPerCent => dn_per_nonsyn_poss.round(4),
-      :psPerCent => ps_per_syn_poss.round(4),
-      :pnPerCent => pn_per_nonsyn_poss.round(4),
-      :synPoss => poss_counts[0].to_i,
-      :nonsynPoss => poss_counts[1].to_i,
-      :possSum => norm.to_i,
-      :lengthSum => length_sum.to_i
+      :alpha100 => alpha.round(4),
+      :dn => dn.round(4),
+      :ds => ds.round(4),
+      :pn => pn.round(4),
+      :ps => ps.round(4),
     }
   end
 

@@ -20,7 +20,7 @@ class Div < ActiveRecord::Base
   #
   # Examples:
   #
-  #   Insectdb::Div.from_hash( {:dmel => 'A', :dsim => 'G', :dyak => 'T',}
+  #   Insectdb::Div.from_hash( {:dmel => 'A', :dsim => 'G', :dyak => 'T'}
   #                            '2R',
   #                            765986 )
   #
@@ -76,6 +76,7 @@ class Div < ActiveRecord::Base
   # * synonimity coefficient - The Float or nil.
   def syn?
     return [nil, nil] unless codon = Segment.codon_at(chromosome, position)
+    # warn codon.nuc_codon
     return [nil, nil] unless codon.valid?
 
     other_divs =
@@ -85,6 +86,10 @@ class Div < ActiveRecord::Base
     return [nil, nil] unless other_divs.empty?
 
     [codon.pos_syn?(position), nil]
+  end
+
+  def codon
+    Segment.codon_at(chromosome, position).codon
   end
 
 end

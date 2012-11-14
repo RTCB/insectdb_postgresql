@@ -4,7 +4,11 @@ describe Insectdb::Snp do
 
 describe "::from_col" do
   it "should initialize correctly from nucleotide column" do
-    Insectdb::Snp.from_col('AAGANNG'.split(''), '2R', 123)
+    Insectdb::Snp.from_col(
+      {:dmel => 'A', :dsim => 'G', :dyak => 'T'},
+      'AAGANNG'.split(''),
+      '2R',
+      123)
     s = Insectdb::Snp.first
     s.chromosome.should == 0
     s.sig_count.should == 5

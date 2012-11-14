@@ -28,6 +28,7 @@ class Snp < ActiveRecord::Base
   # Examples:
   #
   #   Insectdb::Snp.from_col(
+  #     {:dmel => 'A', :dsim => 'G', :dyak => 'T'}
   #     ['A','A','A','A','C','C'],
   #     '2R',
   #     87765
@@ -82,8 +83,8 @@ class Snp < ActiveRecord::Base
 
     other_snps =
       Snp.where("chromosome = ? and position in (?)",
-                chromosome,
-                codon.pos_codon.select{ |p| p != position })
+                 chromosome,
+                 codon.pos_codon.select{ |p| p != position })
     return [nil, nil] unless other_snps.empty?
 
     [codon.pos_syn?(position), nil]

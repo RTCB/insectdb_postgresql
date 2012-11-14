@@ -1,6 +1,7 @@
 source "http://rubygems.org"
 
 group :development do
+  gem 'ruby-prof'
   gem 'rspec'
   gem 'parallel_tests'
   gem 'mocha'

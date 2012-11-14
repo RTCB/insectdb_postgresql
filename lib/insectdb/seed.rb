@@ -16,35 +16,35 @@ module Seed
 
   def self.segments
     self._exec_and_format(:segments) do |l|
-      Insectdb::Segment.create!(
-        :id         => l[0],
-        :chromosome => Insectdb::CHROMOSOMES[l[1]],
-        :start      => (l[2].to_i - 1),
-        :stop       => (l[3].to_i - 1),
-        :type       => l[4],
-        :length     => (l[3].to_i - 1)-(l[2].to_i - 1)
-      )
+      Insectdb::Segment.create! do |r|
+        r.id         = l[0].to_i
+        r.chromosome = Insectdb::CHROMOSOMES[l[1]]
+        r.start      = l[2].to_i
+        r.stop       = l[3].to_i
+        r.type       = l[4]
+        r.length     = l[3].to_i - l[2].to_i
+      end
     end
   end
 
   def self.mrnas
     self._exec_and_format(:mrnas) do |l|
-      Insectdb::Mrna.create!(
-        :id         => l[0],
-        :chromosome => Insectdb::CHROMOSOMES[l[1]],
-        :strand     => l[2],
-        :start      => l[3],
-        :stop       => l[4]
-      )
+      Insectdb::Mrna.create! do |r|
+        r.id         = l[0].to_i
+        r.chromosome = Insectdb::CHROMOSOMES[l[1]]
+        r.strand     = l[2]
+        r.start      = l[3].to_i
+        r.stop       = l[4].to_i
+      end
     end
   end
 
   def self.genes
     self._exec_and_format(:genes) do |l|
-      Insectdb::Gene.create!(
-        :id         => l[0],
-        :flybase_id => l[1]
-      )
+      Insectdb::Gene.create! do |r|
+        r.id         = l[0].to_i
+        r.flybase_id = l[1]
+      end
     end
   end
 
@@ -77,8 +77,14 @@ module Seed
       .to_hash
   end
 
-  # TODO Write docs
-  # Public: The general purpose of this function is to
+  # Public: The function makes a decision on whether the position
+  #         is divergent or is an SNP. And also creates a record in
+  #         reference table for this position.
+  #
+  # ref - Hash with dmel, dsim and dyak nucleotides.
+  # dmel_col - Array with 163 dmel nucleotides.
+  # chr - String with chromosome name.
+  # pos - Integer with position on chromosome.
   def self.seq_processor( ref, dmel_col, chr, pos )
     check = [
               Snp.column_is_polymorphic?(dmel_col),
@@ -100,7 +106,7 @@ module Seed
 
     snp_enums =
       Dir[File.join(path, "drosophila_melanogaster/*_#{chr}.fa.gz")]
-        .map{|f| Insectdb::SeqEnum.new(f) }
+        .map { |f| Insectdb::SeqEnum.new(f) }
 
     step = (ENV['ENV'] == 'test' ? 5 : 200000)
     map = (0..(ref_enums[:dmel].length/step)).map{ |v| v * step }

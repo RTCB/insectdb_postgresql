@@ -1,12 +1,6 @@
 module Insectdb
 class Sequence
-
-  attr_reader :seq, :strand
-
-  # Public: Instantiate the new Sequence object.
-  #
-  # seq_with_coords - The Array with positions and nucleotides, i.e.
-  #                   [[1,'A'],[2,'G']]
+attr_reader :seq, :strand # Public: Instantiate the new Sequence object.  # # seq_with_coords - The Array with positions and nucleotides, i.e.  #                   [[1,'A'],[2,'G']]
   # strand - The String with + or - sign, denoting the read direction.
   #
   # Returns the Sequence object.
@@ -33,7 +27,7 @@ class Sequence
   end
 
   def []( pos )
-    @seq.find{ |a| a.first == pos }
+    @seq.find { |a| a.first == pos }
   end
 
   def length
@@ -68,6 +62,15 @@ class Sequence
     @seq.each_slice(3)
         .map { |c| c.size == 3 ? Insectdb::Codon.new(c) : nil }
         .compact
+  end
+
+  # Public: Return String with sequnce
+  #
+  # Examples:
+  #
+  #   Sequnce.new([[1,'A'],[2,'G']],'+').raw_seq #=> 'AG'
+  def raw_seq
+    @seq.map(&:last).join
   end
 
 end
