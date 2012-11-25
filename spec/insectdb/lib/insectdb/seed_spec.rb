@@ -3,9 +3,9 @@ require 'spec_helper'
 describe Insectdb::Seed do
 
 # A helper function that produces a gzipped file with passed content
-def cf( name, content )
-  FileUtils.mkdir_p(File.dirname(name))
-  Zlib::GzipWriter.open(name){ |gz| gz.write(content) }
+def cf( path, content )
+  FileUtils.mkdir_p(File.dirname(path))
+  Zlib::GzipWriter.open(path){ |gz| gz.write(content) }
 end
 
 describe "::reference_enums_for" do
@@ -43,10 +43,10 @@ describe "::seq_processor" do
     Insectdb::Reference.count.should == 1
   end
 
-  it "should not add Div or Snp when both are found" do
+  it "should not add Div or Snp when both are present" do
     Insectdb::Seed.seq_processor(
       {:dmel => 'A', :dsim => 'G', :dyak => 'G'},
-      ['A']*162 + ['C'],
+      (['A']*162) + ['C'],
       '2R',
       70943
     )

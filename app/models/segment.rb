@@ -114,9 +114,10 @@ class Segment < ActiveRecord::Base
                chromosome, start, stop)
   end
 
-  # Public: Return the strand of mRNA, as part of which this segment gets translated.
-  #         It is assumed that strand is the same for all mRNAs of this segment,
-  #         so the strand value is derived from any one of them.
+  # Public: Return the strand of mRNA, as part of which this segment gets
+  # translated. It is assumed that strand is the same for all
+  # mRNAs of this segment, so the strand value is derived
+  # from any one of them.
   #
   # Returns String with + or -.
   def strand

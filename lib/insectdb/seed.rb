@@ -3,6 +3,9 @@ module Seed
 
   SEPARATOR = ';'
 
+  # Public: Initiates seeding of reference, div and snp databases.
+  #
+  # Returns nothing.
   def self.seqs
     puts "Seeding Reference, Div and Snp"
     Insectdb::CHROMOSOMES.keys.each do |chr|
@@ -85,6 +88,8 @@ module Seed
   # dmel_col - Array with 163 dmel nucleotides.
   # chr - String with chromosome name.
   # pos - Integer with position on chromosome.
+  #
+  # Returns nothing.
   def self.seq_processor( ref, dmel_col, chr, pos )
     check = [
               Snp.column_is_polymorphic?(dmel_col),
@@ -98,6 +103,8 @@ module Seed
     end
 
     Insectdb::Reference.from_hash(ref, chr, pos)
+
+    return nil
   end
 
   # Private: Seed Reference, Snp and Div tables for one chromosome
