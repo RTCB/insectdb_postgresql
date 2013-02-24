@@ -7,3 +7,5 @@ db/seed/
 tags
 data/**
 .yardoc
+doc
+TODO.md

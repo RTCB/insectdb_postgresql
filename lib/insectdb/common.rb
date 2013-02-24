@@ -26,13 +26,11 @@ module Insectdb
   end
 
   def self.peach( array, processes = 8, &block )
-    res =
-      Parallel.each(array, :in_processes => processes) do |el|
-        ActiveRecord::Base.connection.reconnect!
-        block.call(el)
-      end
+    Parallel.each(array, :in_processes => processes) do |el|
+      ActiveRecord::Base.connection.reconnect!
+      block.call(el)
+    end
     self.reconnect
-    return res
   end
 
   def self.bench(&block)

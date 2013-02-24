@@ -1,6 +1,7 @@
 module Insectdb
 class Codon
 
+  # Hash with 'codon'<->'site synonimity map'
   # If a site mutation in codon always results in
   # amino-acid change then site is marked as 'n'.
   # If a site mutation in codon never results in

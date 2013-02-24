@@ -123,8 +123,6 @@ namespace :db do
 
   namespace :seed do
 
-    desc "Seed development database"
-
     task :seqs => ['load', 'configure_connection'] do
       Insectdb::Seed.seqs
     end

@@ -165,11 +165,7 @@ class Reference < ActiveRecord::Base
   # Public: Return a reference sequence.
   #
   # The reference sequence has consesus at each position in all three
-  # species, i.e. D.melanogaster, D.simulans and D.yakuba. Internally this
-  # function takes the array of three nucleotides and executes Array#uniq
-  # on it. If the resulting array has the size > 1, this means position has
-  # no consesus and thus reference sequnce should have 'N' at this position.
-  # Otherwise the first nucleotide is taken as referential.
+  # species, i.e. D.melanogaster, D.simulans and D.yakuba.
   #
   # chr - The String or The Integer with chromosome id.
   # start - The Integer with 5' end of segment.
@@ -178,11 +174,13 @@ class Reference < ActiveRecord::Base
   # Examples:
   #
   #   Insectdb::Reference.ref_seq('2R', 5238, 5245)
-  #     # => #<Insectdb::Sequence @start=5238, @nuc_seq='ACGGGTA'" >
+  #                      .class == Insectdb::Sequence
   #
   # Returns Insectdb::Sequence object.
-  def self.ref_seq( chr, start, stop, strand )
+  def self.ref_seq( chr, start, stop, strand=nil )
+
     chromosome = (chr.class == String) ? CHROMOSOMES[chr] : chr
+
     seq = self.where("chromosome = ? and position between ? and ?",
                       chromosome, start, stop)
               .map do |r|
@@ -193,13 +191,17 @@ class Reference < ActiveRecord::Base
                 ]
               end
 
-    Insectdb::Sequence.new(seq, strand)
+    Insectdb::Sequence.new(seq)
+
   end
 
   def self.na_eq?( char_1, char_2 )
+
     (%W[A C G T].include?(char_1)) &&
     (%W[A C G T].include?(char_2)) &&
     (char_1 == char_2)
+
   end
+
 end
 end

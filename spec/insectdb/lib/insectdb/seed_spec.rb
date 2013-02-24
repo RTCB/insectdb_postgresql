@@ -30,7 +30,7 @@ describe "::reference_enums_for" do
   end
 
 describe "::seq_processor" do
-  it "should add Div when no Snp found" do
+  it "should add Div when no Snp is found" do
     Insectdb::Seed.seq_processor(
       {:dmel => 'A', :dsim => 'G', :dyak => 'G'},
       ['A']*163,

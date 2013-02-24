@@ -63,6 +63,7 @@ class Segment < ActiveRecord::Base
   #
   # Returns Integer number of records removed.
   def self.clean
+
     count_bfr = Insectdb::Segment.count
     puts "Rows at beginning: #{count_bfr}"
 
@@ -82,6 +83,7 @@ class Segment < ActiveRecord::Base
 
     puts "Done, removed #{sum} rows, which is #{percent}%"
     puts "Rows now: #{count_aftr}"
+
   end
 
   # Public: Return the codon at specified location.
@@ -102,8 +104,10 @@ class Segment < ActiveRecord::Base
   #
   # Returns ActiveRecord::Relation.
   def snps
+
     Snp.where("chromosome = ? and position between ? and ?",
                chromosome, start, stop)
+
   end
 
   # Public: Return all divs for this segment.
@@ -128,6 +132,7 @@ class Segment < ActiveRecord::Base
   #
   # Returns Insectdb::Sequence object.
   def ref_seq
+
     if _ref_seq
       _ref_seq
     else
@@ -135,6 +140,7 @@ class Segment < ActiveRecord::Base
       update_attributes(:_ref_seq => seq)
       seq
     end
+
   end
 
   # Public: return the GC content at the third positions of codons
@@ -145,10 +151,6 @@ class Segment < ActiveRecord::Base
     s = codons.map { |c| c.nuc_codon[2] }.join
     ((s.count('G')+s.count('C')).to_f/codons.count).round(4)
   end
-
-  ##################################
-  ######### Private ################
-  ##################################
 
   # Private: Return dn_ds_pn_ps values for this segment.
   #
@@ -168,13 +170,16 @@ class Segment < ActiveRecord::Base
     }
   end
 
-  # Private: Inner function used for benchmarking production db.
+  # Private: Count synonymous polymorphisms
+  #
+  # Inner function used for benchmarking production db.
   #
   # Returns Integer.
   def _ps
     snps.map(&:syn?).count { |r| r.first == true }
   end
 
+  # Private
   def _dn
     divs.map(&:syn?).count { |r| r.first == false }
   end
