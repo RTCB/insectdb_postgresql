@@ -16,7 +16,7 @@ class Div < ActiveRecord::Base
   #
   # ref - The Hash with nucleotides from three organisms.
   # chr - The String with chromosome name.
-  # pos - The Integere with position on chromosome.
+  # pos - The Integer with position on chromosome.
   #
   # Examples:
   #
@@ -26,11 +26,13 @@ class Div < ActiveRecord::Base
   #
   # Returns The Insectdb::Div object.
   def self.from_hash( ref, chr, pos )
+
     self.create!(
       :chromosome => Insectdb::CHROMOSOMES[chr],
       :position   => pos,
       :alleles    => ref
     )
+
   end
 
   # Public: The position is considered divergent if it posesses equal
@@ -64,9 +66,11 @@ class Div < ActiveRecord::Base
   #
   # Returns The Boolean.
   def self.position_is_divergent?( hash )
+
     (hash[:dsim] == hash[:dyak]) &&
     (hash[:dmel] != hash[:dsim]) &&
     !hash.values.include?('N')
+
   end
 
   # Public: Analyses the synonimity of the mutation.
@@ -75,8 +79,8 @@ class Div < ActiveRecord::Base
   # * synonimity of mutation - The Boolean or nil.
   # * synonimity coefficient - The Float or nil.
   def syn?
+
     return [nil, nil] unless codon = Segment.codon_at(chromosome, position)
-    # warn codon.nuc_codon
     return [nil, nil] unless codon.valid?
 
     other_divs =
@@ -86,10 +90,18 @@ class Div < ActiveRecord::Base
     return [nil, nil] unless other_divs.empty?
 
     [codon.pos_syn?(position), nil]
+
   end
 
   def codon
     Segment.codon_at(chromosome, position).codon
+  end
+
+  def to_mutation
+    Insectdb::Mutation.new(
+      pos:     self.position,
+      alleles: self.alleles.values.uniq
+    )
   end
 
 end

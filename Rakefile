@@ -14,7 +14,7 @@ end
 
 desc "Run ctags"
 task :tag do
-  `ctags -R --exclude=.git --exclude=log *`
+  `ctags -R --exclude=.git --exclude=log -o=.tags *`
 end
 
 desc "Pull the latest version from repository"
@@ -160,8 +160,8 @@ namespace :db do
     end
 
     task :all => ['load',
-                  'seqs',
                   'segments',
+                  'seqs',
                   'mrnas',
                   'genes',
                   'mrnas_segments',

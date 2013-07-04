@@ -5,10 +5,11 @@ class Segment < ActiveRecord::Base
   self.inheritance_column = 'inheritance_type'
   has_and_belongs_to_many :mrnas
 
-  scope :alt, where(:type => 'coding(alt)')
-  scope :const, where(:type => 'coding(const)')
-  scope :int, where(:type => 'intron')
-  scope :coding, where("type != 'intron'")
+  scope :alt,    -> { where( :type => 'coding(alt)'   )}
+  scope :const,  -> { where( :type => 'coding(const)' )}
+  scope :int,    -> { where( :type => 'intron'        )}
+  scope :coding, -> { where( "type != 'intron'"       )}
+
 
   validates :chromosome,
             :presence => true,
@@ -54,7 +55,7 @@ class Segment < ActiveRecord::Base
       r.start      = params[:start].to_i
       r.stop       = params[:stop].to_i
       r.type       = params[:type]
-      r.length     = params[:stop].to_i - params[:start].to_i
+      r.length     = params[:stop].to_i - params[:start].to_i + 1
       r._ref_seq   = params[:_ref_seq] if params[:_ref_seq]
     end
   end
@@ -103,10 +104,11 @@ class Segment < ActiveRecord::Base
   # Public: Return all SNPs for this segment.
   #
   # Returns ActiveRecord::Relation.
-  def snps
+  def snps(sig_count=150)
 
     Snp.where("chromosome = ? and position between ? and ?",
                chromosome, start, stop)
+       .order("position ASC")
 
   end
 
@@ -116,6 +118,13 @@ class Segment < ActiveRecord::Base
   def divs
     Div.where("chromosome = ? and position between ? and ?",
                chromosome, start, stop)
+       .order("position ASC")
+  end
+
+  def codons
+    self.ref_seq
+        .codons
+        .select{ |c| c.start >= self.start && c.stop <= self.stop }
   end
 
   # Public: Return the strand of mRNA, as part of which this segment gets
@@ -152,37 +161,6 @@ class Segment < ActiveRecord::Base
     ((s.count('G')+s.count('C')).to_f/codons.count).round(4)
   end
 
-  # Private: Return dn_ds_pn_ps values for this segment.
-  #
-  # snp_aaf_margin - Set the upper margin for SNP aaf ( ancestral allele
-  #                  frequency) value. Default is 100%.
-  #
-  # Returns Hash.
-  def _dn_ds_pn_ps( snp_aaf_margin = 100 )
-    s = snps.select { |e| e.aaf < snp_aaf_margin }.map(&:syn?)
-    d = divs.map(&:syn?)
-
-    {
-      :dn => d.count { |r| r.first == false },
-      :ds => d.count { |r| r.first == true  },
-      :pn => s.count { |r| r.first == false },
-      :ps => s.count { |r| r.first == true  }
-    }
-  end
-
-  # Private: Count synonymous polymorphisms
-  #
-  # Inner function used for benchmarking production db.
-  #
-  # Returns Integer.
-  def _ps
-    snps.map(&:syn?).count { |r| r.first == true }
-  end
-
-  # Private
-  def _dn
-    divs.map(&:syn?).count { |r| r.first == false }
-  end
 
 end
 end

@@ -8,6 +8,12 @@ require_relative 'insectdb/segment_gain'
 require_relative 'insectdb/segment_inclusion'
 require_relative 'insectdb/routines'
 require_relative 'insectdb/seed'
+require_relative 'insectdb/mutation'
+
+require_relative 'insectdb/mutation_count/ermakova'
+require_relative 'insectdb/mutation_count/leushkin'
+require_relative 'insectdb/mutation_count/routine'
+
 require '/home/anzaika/loc_projects/my_ruby_extensions/lib/my_ruby_extensions'
 require 'bundler/setup'
 require 'active_record'

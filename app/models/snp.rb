@@ -3,7 +3,7 @@ class Snp < ActiveRecord::Base
   serialize :alleles
 
   validates :chromosome,
-            :presence => true,
+           :presence => true,
             :numericality => { :only_integer => true },
             :inclusion => { :in => [0, 1, 2, 3, 4] }
 
@@ -78,8 +78,10 @@ class Snp < ActiveRecord::Base
   # * synonimity of mutation - The Boolean or nil.
   # * synonimity coefficient - The Float or nil.
   def syn?
-    return [nil, nil] unless codon = Segment.codon_at(chromosome, position)
-    return [nil, nil] unless codon.valid?
+
+    unless (codon = Segment.codon_at(chromosome, position)) && codon.valid?
+      return [nil, nil]
+    end
 
     other_snps =
       Snp.where("chromosome = ? and position in (?)",
@@ -88,6 +90,14 @@ class Snp < ActiveRecord::Base
     return [nil, nil] unless other_snps.empty?
 
     [codon.pos_syn?(position), nil]
+
+  end
+
+  def to_mutation
+    Insectdb::Mutation.new(
+      pos:     self.position,
+      alleles: self.alleles.keys
+    )
   end
 
 end

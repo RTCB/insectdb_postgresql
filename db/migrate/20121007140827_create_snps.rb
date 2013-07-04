@@ -9,7 +9,7 @@ class CreateSnps < ActiveRecord::Migration
     end
 
     add_index :snps,
-              [:chromosome, :sig_count, :position],
+              [:chromosome, :position, :sig_count],
               :name => 'snps__chr_sigcount_pos'
   end
 

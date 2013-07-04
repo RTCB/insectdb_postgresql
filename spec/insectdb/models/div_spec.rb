@@ -17,9 +17,11 @@ end
 
 describe "::position_is_divergent?" do
   it "should return true for [A G G] case" do
+
     Insectdb::Div.position_is_divergent?({ :dmel => 'A',
                                            :dsim => 'G',
                                            :dyak => 'G',}).should be_true
+
   end
 
   it "should return false for [A N N] case" do

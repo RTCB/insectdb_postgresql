@@ -1,83 +1,26 @@
 module Insectdb
 class Codon
 
-  # Hash with 'codon'<->'site synonimity map'
-  # If a site mutation in codon always results in
-  # amino-acid change then site is marked as 'n'.
-  # If a site mutation in codon never results in
-  # amino-acid change then site is marked as 's'.
-  # If a site mutation in codon sometimes changes
-  # the amino-acid and sometimes not then site is marked as 'u'.
-  SITE_SYNONYMITY = {
-    'GCC' => 'nns',
-    'AGT' => 'nnu',
-    'TGA' => 'uuu',
-    'TGT' => 'nnu',
-    'CGA' => 'uns',
-    'ATC' => 'nnu',
-    'AAC' => 'nnu',
-    'AGC' => 'nnu',
-    'TAC' => 'nnu',
-    'ACA' => 'nns',
-    'TCG' => 'nns',
-    'CCG' => 'nns',
-    'CTG' => 'uns',
-    'GCA' => 'nns',
-    'GTG' => 'uns',
-    'AAG' => 'nnu',
-    'GTT' => 'nns',
-    'CAC' => 'nnu',
-    'AGA' => 'unu',
-    'ACC' => 'nns',
-    'CCA' => 'nns',
-    'TGG' => 'unu',
-    'CGC' => 'nns',
-    'CTC' => 'nns',
-    'TTG' => 'unu',
-    'TAA' => 'nuu',
-    'CAG' => 'nnu',
-    'ACG' => 'nns',
-    'ATG' => 'unu',
-    'AAA' => 'nnu',
-    'GTA' => 'uns',
-    'CTT' => 'nns',
-    'TAG' => 'nnu',
-    'GGA' => 'uns',
-    'GTC' => 'nns',
-    'TGC' => 'nnu',
-    'TCA' => 'nus',
-    'ATT' => 'nnu',
-    'TAT' => 'nnu',
-    'AAT' => 'nnu',
-    'ACT' => 'nns',
-    'CAA' => 'nnu',
-    'GAC' => 'nnu',
-    'GGT' => 'nns',
-    'TCC' => 'nns',
-    'TTT' => 'nnu',
-    'AGG' => 'unu',
-    'CGT' => 'nns',
-    'ATA' => 'unu',
-    'CAT' => 'nnu',
-    'CGG' => 'uns',
-    'GGG' => 'uns',
-    'CCC' => 'nns',
-    'GAG' => 'nnu',
-    'TTA' => 'uuu',
-    'CTA' => 'uns',
-    'GAT' => 'nnu',
-    'TCT' => 'nns',
-    'TTC' => 'nnu',
-    'GCG' => 'nns',
-    'GGC' => 'nns',
-    'GAA' => 'nnu',
-    'GCT' => 'nns',
-    'CCT' => 'nns'
-  }
-
   attr_reader :codon
 
-  # Public: Initialize a new instance.
+  # Check whether two codons code for the same aa
+  #
+  # @param [Array] codon_1 ['A','T','G']
+  # @param [Array] codon_2 ['C','T','A']
+  # @return [Boolean]
+  def self.codons_syn?(codon_1, codon_2)
+    codon_1.translate == codon_2.translate
+  end
+
+  # Check codon for being a stop codon
+  #
+  # @param [Array] codon ['T','A','G']
+  # @return [Boolean]
+  def self.stop_codon?(codon)
+    translate(codon) == '*' ? true : false
+  end
+
+  # Public
   #
   # codon - The Array of this structure: [[1,'A'],[2,'G'],[3,'C']]
   #
@@ -92,11 +35,19 @@ class Codon
   end
 
   def nuc_codon
-    @codon.map(&:last)
+    @nuc_codon ||= @codon.map(&:last)
   end
 
   def pos_codon
-    @codon.map(&:first)
+    @pos_codon ||= @codon.map(&:first)
+  end
+
+  def start
+    pos_codon.first
+  end
+
+  def stop
+    pos_codon.last
   end
 
   def translate
@@ -121,37 +72,6 @@ class Codon
     pos_codon.include?(pos)
   end
 
-  def pos_syn?( pos )
-    cod = SITE_SYNONYMITY[nuc_codon.join]
-    return nil unless cod
-
-    case  pos_codon.zip(cod.split("")).find{ |p| p.first == pos }.last
-    when 'u'
-      nil
-    when 's'
-      true
-    when 'n'
-      false
-    end
-  end
-
-  # Check whether two codons code for the same aa
-  #
-  # @param [Array] codon_1 ['A','T','G']
-  # @param [Array] codon_2 ['C','T','A']
-  # @return [Boolean]
-  def self.codons_syn?(codon_1, codon_2)
-    codon_1.translate == codon_2.translate
-  end
-
-  # Check codon for being a stop codon
-  #
-  # @param [Array] codon ['T','A','G']
-  # @return [Boolean]
-  def self.stop_codon?(codon)
-    translate(codon) == '*' ? true : false
-  end
-
   # Public: Return coordinates of synonymous or nonsynonymous positions.
   #
   # Examples:
@@ -173,6 +93,41 @@ class Codon
   def include?( nuc )
     nuc_codon.include?(nuc)
   end
+
+  # Public: Apply mutation onto this codon.
+  #
+  # Examples:
+  #
+  #   Insectdb::Codon.new([[1,'A'],[2,'C'],[3,'C']])
+  #                  .mutate([2, ['C','G']])
+  #
+  # mutation -  An Array that is a simplified Snp or Div.
+  #
+  # Returns a Codon.
+  def mutate( mutation )
+
+    ind = @codon.index{ |a| a[0] == mutation.first }
+    current_nuc = @codon[ind][1]
+    new_nuc = mutate_nucleotide(current_nuc, mutation[1])
+
+    # if mutation has no common nucleotides with this codon
+    return nil unless new_nuc
+
+    new_codon = @codon.clone
+    new_codon[ind] = [mutation.first, new_nuc]
+
+    Insectdb::Codon.new(new_codon)
+
+  end
+
+  # Private: Return a mutated nucleotide value for the
+  # existing nucleotide and mutation pattern passed.
+  def mutate_nucleotide( old_nuc, poly )
+
+    poly.include?(old_nuc) ? poly.find{ |nuc| nuc != old_nuc } : nil
+
+  end
+
 
 end
 end

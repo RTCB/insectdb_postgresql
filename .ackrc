@@ -1,0 +1,3 @@
+--ignore-dir=db/seed
+--ignore-dir=data
+--ignore-dir=doc

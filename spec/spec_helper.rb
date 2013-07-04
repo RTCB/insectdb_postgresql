@@ -2,7 +2,7 @@ ENV['ENV'] = 'test'
 
 require 'insectdb'
 require 'database_cleaner'
-require 'mocha_standalone'
+require 'mocha/api'
 
 RSpec.configure do |config|
 

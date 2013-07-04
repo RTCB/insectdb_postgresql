@@ -6,6 +6,19 @@ module Insectdb
                  '3L' => 3,
                  'X'  => 4}
 
+  def self.each_chromosome(&block)
+
+    result = {}
+
+    Insectdb::CHROMOSOMES.each do |name, val|
+      puts "Processing " + name.to_s + " chromosome"
+      result[name] = block.call(name, val)
+    end
+
+    result
+
+  end
+
   def self.reconnect
     ActiveRecord::Base.connection.reconnect!
   rescue PG::Error => e

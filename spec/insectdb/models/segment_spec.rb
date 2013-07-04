@@ -53,10 +53,18 @@ describe "#ref_seq" do
   end
 end
 
+describe "#codons" do
+  it "should return all codons of this segment" do
+    Insectdb::Segment.first.codons.map(&:codon).should ==
+      [Insectdb::Codon.new([[1,'G'], [2,'T'], [3, 'N']]).codon]
+  end
+end
+
 describe "::codon_at" do
   it "should return the correct Codon" do
     Insectdb::Segment.codon_at(0, 2).nuc_codon.join.should == "GTN"
   end
 end
+
 
 end

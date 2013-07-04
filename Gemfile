@@ -4,11 +4,11 @@ group :development do
   gem 'ruby-prof'
   gem 'rspec'
   gem 'parallel_tests'
-  gem 'mocha'
+  gem 'mocha', :require => false
   gem 'database_cleaner'
+  gem 'factory_girl'
   gem 'autotest-standalone'
   gem 'irbtools'
-  gem 'irbtools-more'
   gem 'what_methods'
   gem 'map_by_method'
   gem 'yard'

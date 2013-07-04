@@ -1,8 +1,27 @@
 module Insectdb
 module Routines
 
+  def self.remove_unused_snps_and_divs
+
+    Insectdb.each_chromosome do |name, q|
+
+      Insectdb
+        .mapp(Insectdb::Segment.where('chromosome = ?', q), 10){ |s| Range.new(s.start, s.stop).to_a }
+        .reduce(:+)
+        .tap do |a|
+          Insectdb::Snp.delete_all(['chromosome = ? and position not in (?)', q, a])
+          Insectdb::Div.delete_all(['chromosome = ? and position not in (?)', q, a])
+        end
+
+      'success'
+    end
+
+  end
+
   def self.per_segment_summary
+
     Insectdb::Snp.set_margin(85)
+
     Insectdb.mapp(Insectdb::Segment.coding, 10) do |s|
       {
         'segment_id' => s.id,
@@ -16,6 +35,7 @@ module Routines
         'ps' => Insectdb::Snp.count_at_poss(s.chromosome, s.poss('syn'))
       }
     end
+
   end
 
   # Public: Generate a report for a set of segments
@@ -62,66 +82,9 @@ module Routines
     site_count_formatted
   end
 
-  def self.mk_formatted( query, exon_shift )
-    mk100 = self.mk(query, exon_shift, 100)
-    mk85  = self.mk(query, exon_shift, 85)
-    puts "%tr"
-    puts "\s\s%td\n\s\s#{mk100[:alphaNorm]}"
-    puts "\s\s%td\n\s\s#{mk85[:alphaNorm]}"
-    puts "\s\s%td\n\s\s#{mk100[:dnNorm]}"
-    puts "\s\s%td\n\s\s#{mk100[:dsNorm]}"
-    puts "\s\s%td\n\s\s#{mk100[:pnNorm]}"
-    puts "\s\s%td\n\s\s#{mk85[:pnNorm]}"
-    puts "\s\s%td\n\s\s#{mk100[:psNorm]}"
-    puts "\s\s%td\n\s\s#{mk85[:psNorm]}"
-    puts "%tr"
-    puts "\s\s%td\n\s\s#{mk100[:dn]}"
-    puts "\s\s%td\n\s\s#{mk100[:dnPerCent]}"
-    puts "\s\s%td\n\s\s#{mk100[:ds]}"
-    puts "\s\s%td\n\s\s#{mk100[:dsPerCent]}"
-    puts "\s\s%td\n\s\s#{mk100[:pn]}"
-    puts "\s\s%td\n\s\s#{mk100[:pnPerCent]}"
-    puts "\s\s%td\n\s\s#{ mk85[:pn]}"
-    puts "\s\s%td\n\s\s#{ mk85[:pnPerCent]}"
-    puts "\s\s%td\n\s\s#{mk100[:ps]}"
-    puts "\s\s%td\n\s\s#{mk100[:psPerCent]}"
-    puts "\s\s%td\n\s\s#{ mk85[:ps]}"
-    puts "\s\s%td\n\s\s#{ mk85[:psPerCent]}"
-    puts "\s\s%td\n\s\s#{mk100[:synPoss]}"
-    puts "\s\s%td\n\s\s#{mk100[:nonsynPoss]}"
-    # puts "\s\s%td\n\s\s#{mk100[:lengthSum]}"
-    # puts "\s\s%td\n\s\s#{Insectdb::Segment.exon_shift.to_s}"
-    # puts "\s\s%td\n\s\s#{Insectdb::Snp.margin.to_s}"
-  end
-
-  # Execute MacDonald-Kreitman test for segments returned by query
-  def self.mk( query, snp_margin )
-
-    result =
-      Insectdb.mapp(query, 12) do |s|
-        s._dn_ds_pn_ps(snp_margin)
-      end
-
-    dn = result.map{ |h| h[:dn] }.reduce(:+)
-    ds = result.map{ |h| h[:ds] }.reduce(:+)
-    pn = result.map{ |h| h[:pn] }.reduce(:+)
-    ps = result.map{ |h| h[:ps] }.reduce(:+)
-
-    alpha = 1-((ds*pn)/(dn*ps))
-
-    {
-      :alpha100 => alpha.round(4),
-      :dn => dn.round(4),
-      :ds => ds.round(4),
-      :pn => pn.round(4),
-      :ps => ps.round(4),
-    }
-  end
-
   ########################################
   ############ Binding stuff #############
   ########################################
-
 
   def self.bind_divs_for_all_nucs( syn, scope )
     bind = Insectdb.bind

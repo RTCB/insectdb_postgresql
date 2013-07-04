@@ -3,22 +3,33 @@ require 'spec_helper'
 describe Insectdb::Snp do
 
 describe "::from_col" do
+
   it "should initialize correctly from nucleotide column" do
+
     Insectdb::Snp.from_col(
+
       {:dmel => 'A', :dsim => 'G', :dyak => 'T'},
       'AAGANNG'.split(''),
       '2R',
-      123)
+      123
+
+    )
+
     s = Insectdb::Snp.first
     s.chromosome.should == 0
     s.sig_count.should == 5
     s.alleles.should == {'A' => 3, 'G' => 2}
+
   end
+
 end
 
 describe "::column_is_polymorphic?" do
+
   it "should return true for [A A C] column" do
+
     Insectdb::Snp.column_is_polymorphic?(%W[ A A C ]).should be_true
+
   end
 
   it "should return true for [A G C] column" do
