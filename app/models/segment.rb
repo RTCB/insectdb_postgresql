@@ -60,6 +60,27 @@ class Segment < ActiveRecord::Base
     end
   end
 
+  def self.simple_create( id: id,
+                          chr: chr,
+                          start: start,
+                          type: type,
+                          seq: seq )
+
+    stop = seq.length + start - 1
+    ref_seq = (start..stop).zip(seq.split(''))
+
+    self.___create!({
+      :id => id,
+      :chromosome => chr,
+      :start => start,
+      :stop => stop,
+      :type => type,
+      :length => ref_seq.length,
+      :_ref_seq => Insectdb::Sequence.new(ref_seq)
+    })
+
+  end
+
   # Public: Remove all noncoding segments.
   #
   # Returns Integer number of records removed.
@@ -93,10 +114,9 @@ class Segment < ActiveRecord::Base
   def self.codon_at( chromosome, position )
     seg = Segment.where("chromosome = ? and start <= ? and stop >= ?",
                          chromosome, position, position).first
-    return nil unless seg
+    return nil if seg.nil?
 
-    mrna = seg.mrnas.first
-    return nil unless mrna
+    return nil if (mrna = seg.mrnas.first).nil?
 
     mrna.codon_at(position)
   end

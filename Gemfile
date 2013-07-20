@@ -17,7 +17,7 @@ end
 
 gem 'pg'
 gem 'activerecord'
-gem 'bio'
+gem 'bio', '1.4.2'
 gem 'parallel'
 
 # gem 'my_ruby_extensions', :path => "/home/anzaika/loc_projects/my_ruby_extensions"

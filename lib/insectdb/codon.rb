@@ -20,6 +20,10 @@ class Codon
     translate(codon) == '*' ? true : false
   end
 
+  def self.simple_create( start: start, seq: seq)
+    self.new( (start..(start+2)).zip(seq.split('')) )
+  end
+
   # Public
   #
   # codon - The Array of this structure: [[1,'A'],[2,'G'],[3,'C']]
@@ -33,6 +37,12 @@ class Codon
     end
     @codon = codon
   end
+
+  def ==(other_codon)
+    self.nuc_codon == other_codon.nuc_codon &&
+    self.pos_codon == other_codon.pos_codon
+  end
+
 
   def nuc_codon
     @nuc_codon ||= @codon.map(&:last)
@@ -106,15 +116,15 @@ class Codon
   # Returns a Codon.
   def mutate( mutation )
 
-    ind = @codon.index{ |a| a[0] == mutation.first }
+    ind = @codon.index{ |a| a[0] == mutation.pos }
     current_nuc = @codon[ind][1]
-    new_nuc = mutate_nucleotide(current_nuc, mutation[1])
+    new_nuc = mutate_nucleotide(current_nuc, mutation.alleles)
 
     # if mutation has no common nucleotides with this codon
     return nil unless new_nuc
 
     new_codon = @codon.clone
-    new_codon[ind] = [mutation.first, new_nuc]
+    new_codon[ind] = [mutation.pos, new_nuc]
 
     Insectdb::Codon.new(new_codon)
 

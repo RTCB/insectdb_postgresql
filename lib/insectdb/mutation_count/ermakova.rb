@@ -1,7 +1,9 @@
 module Insectdb::MutationCount
 module Ermakova
 
-  def self.process( codon, mutations )
+  ZERO = {:syn => 0.0, :nonsyn => 0.0}
+
+  def self.process( codon: codon, mutations: mutations )
 
     # Norm is the coefficent equal to the total number of transitions
     # in all paths.
@@ -24,7 +26,6 @@ module Ermakova
       .tap{ |hash| hash[true] /= norm.to_f; hash[false] /= norm.to_f }
 
   end
-
 
   # Private: Build a single from a sequence of mutations applied onto codon.
   #

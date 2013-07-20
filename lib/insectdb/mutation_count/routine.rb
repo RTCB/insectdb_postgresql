@@ -3,21 +3,31 @@ class Routine
 
   def initialize( segment: segment, method: 'leushkin')
 
-    @snps    = segment.snps.map(&:to_mut)
-    @divs    = segment.divs.map(&:to_mut)
+    @snps    = segment.snps.map(&:to_mutation)
+    @divs    = segment.divs.map(&:to_mutation)
     @codons  = segment.codons
     @method  = method
 
   end
 
   def pn_ps
-    mut_map(muts: @snps).map{ |s| mutcount(s) }
+    return {:syn => 0.0, :nonsyn => 0.0} if @codons.empty? || @snps.empty?
+    mut_map(muts: @snps).map{ |s| mutcount(struct: s) }
                         .reduce{ |one, two| one.merge(two){ |k,v1,v2| v1+v2 } }
   end
 
+  def dn_ds
+    return {:syn => 0.0, :nonsyn => 0.0} if @codons.empty? || @divs.empty?
+    mut_map(muts: @divs).map{ |s| mutcount(struct: s) }
+                        .reduce{ |one, two| one.merge(two){ |k,v1,v2| v1+v2 } }
+  end
+
+  ### Private ###
+
   def mutcount( struct: struct )
     Insectdb::MutationCount.const_get(@method.capitalize)
-                           .process(struct.codon, struct.mutations)
+                           .process(codon:     struct.codon,
+                                    mutations: struct.mutations)
   end
 
   # Creates an array with OpesStructs. Struct is comprised of a codon
@@ -28,15 +38,21 @@ class Routine
   end
 
   def aggregate_muts( muts: muts )
-    mut = nil
-    @codons.map{ |c| muts_for_codon(codon: c, muts_enum: muts.each, mut: mut) }
+    # mut = nil
+    # @codons.map{ |c| muts_for_codon_fast(codon: c, muts_enum: muts.each, mut: mut) }
+    @codons.map{ |c| muts_for_codon_slow(codon: c, muts: muts) }
   end
 
-  def muts_for_codon( codon: codon, muts_enum: muts_enum, mut: mut)
+  def muts_for_codon_slow( codon: codon, muts: muts)
+    mut_set = muts.select{ |m| codon.pos_codon.include?(m.pos) }
+    mut_set.empty? ? nil : OpenStruct.new(codon: codon, mutations: mut_set)
+  end
+
+  def muts_for_codon_fast( codon: codon, muts_enum: muts_enum, mut: mut)
 
     mut_set = []
 
-    while codon.last >= (mut ||= muts_enum.next).pos do
+    while codon.stop >= (mut ||= muts_enum.next).position do
       mut_set << mut
       mut = muts_enum.next
     end

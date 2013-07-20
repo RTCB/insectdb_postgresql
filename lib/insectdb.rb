@@ -14,6 +14,7 @@ require_relative 'insectdb/mutation_count/ermakova'
 require_relative 'insectdb/mutation_count/leushkin'
 require_relative 'insectdb/mutation_count/routine'
 
+require_relative 'insectdb/tests/pn_ps_dn_ds'
 require '/home/anzaika/loc_projects/my_ruby_extensions/lib/my_ruby_extensions'
 require 'bundler/setup'
 require 'active_record'

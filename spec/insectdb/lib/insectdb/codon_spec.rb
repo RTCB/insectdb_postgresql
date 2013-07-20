@@ -2,7 +2,8 @@ require 'spec_helper'
 
 describe Insectdb::Codon do
 
-codon = Insectdb::Codon.new([[1,'A'], [2,'T'], [3,'C']])
+
+let(:codon) { build(:codon, seq: 'ATC') }
 
 describe "#pos_codon" do
   it "should an array with coordinates" do
@@ -18,14 +19,20 @@ end
 
 describe "#mutate" do
 
-  it "should return ATG for ATC with mutation [3,[C,G]]" do
-    codon.mutate([3,['C','G']])
-         .nuc_codon
-         .should == ['A','T','G']
+  it "should return ATG for ATC with mutation CG at position 3" do
+
+    mutation = build(:mutation, pos: 3, seq: 'CG')
+
+    codon.mutate(mutation)
+         .should == build(:codon, alleles: 'ATG')
+
   end
 
-  it "should return nil for ATC with mutation [3,[T,G]]" do
-    codon.mutate([3,['T','G']])
+  it "should return nil for ATC with mutation TG at position 3" do
+
+    mutation = build(:mutation, pos: 3, alleles: 'TG')
+
+    codon.mutate(mutation)
          .should be_nil
   end
 

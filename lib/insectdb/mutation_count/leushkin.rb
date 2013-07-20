@@ -75,10 +75,12 @@ module Leushkin
     'CCT' => 'nns'
   }
 
+  ZERO = {:syn => 0.0, :nonsyn => 0.0}
+
   def self.process( codon: codon, mutations: mutations )
 
     if mutations.size != 1
-      return {:syn => 0.0, :nonsyn => 0.0}
+      return ZERO
     else
       self.get_result(codon: codon, mutation: mutations.first)
     end
@@ -93,12 +95,12 @@ module Leushkin
   def self.get_result( codon: codon, mutation: mutation )
 
     unless sitemap = SITE_SYNONYMITY[codon.nuc_codon.join]
-      return nil
+      return ZERO
     end
 
     case sitemap[self.get_mutation_relative_position(codon: codon, mutation: mutation)]
     when 'u'
-      {:syn => 0.0, :nonsyn => 0.0}
+      ZERO
     when 's'
       {:syn => 1.0, :nonsyn => 0.0}
     when 'n'
